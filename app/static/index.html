@@ -813,7 +813,7 @@ function mtDetail(r) {
     return k.result === "UNKNOWN" ? '<span class="ic-unk">?</span>' : bad ? '<span class="ic-bad">✗</span>' : '<span class="ic-ok">✓</span>';
   };
   return `<div class="mt-cols">
-    <div><h3>Trial summary</h3><p>${esc(c.overview)}</p>
+    <div>${x.status !== "EXCLUDED" ? `<button class="primary" data-voice style="float:right">Explain to patient</button>` : ""}<h3>Trial summary</h3><p>${esc(c.overview)}</p>
       ${t.interventions?.length ? `<p><b>Intervention:</b> ${esc(t.interventions.join(", "))}</p>` : ""}
       ${c.involves ? `<p><b>What it involves:</b> ${esc(c.involves)}</p>` : ""}
       <p><b>Nearest site:</b> ${esc(t.site || "-")}${t.nSites > 1 ? ` (+${t.nSites - 1} more in NYC)` : ""}</p>
@@ -830,6 +830,7 @@ $("matchView").addEventListener("click", e => {
   if (e.target.closest("[data-run]")) return mtLoad(MT.sel);
   if (e.target.closest("[data-act-ruled]")) { MT.showRuled = !MT.showRuled; return renderMatch(); }
   if (e.target.closest("a")) return;
+  if (e.target.closest("[data-voice]")) { const r = MT.rows[MT.sel][MT.open]; return window.RightVoice?.open(r.trial, r.criteria); }
   const row = e.target.closest("[data-row]");
   if (row) { const i = +row.dataset.row; MT.open = MT.open === i ? null : i; renderMatch(); }
 });
@@ -1155,5 +1156,6 @@ document.addEventListener("keydown", e => {
 
 render();
 </script>
+<script type="module" src="voice-panel.js"></script>
 </body>
 </html>

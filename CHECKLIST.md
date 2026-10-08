@@ -12,13 +12,19 @@
 
 Mockup file: `ehr-notes-mockup.html`. Placeholder patients only; swap in the team's synthetic dataset after the screen layout is final.
 
-### Proposed demo loop
+### Voice plan (decided 2026-10-08)
 
-- [ ] **Dictation:** mic button under Notes. Doctor dictates a synthetic visit; ElevenLabs transcription turns it into text.
-- [ ] **Claude SOAP draft:** Claude drafts the four sections from the transcript. The existing check blocks diagnosis wording in the note.
-- [ ] **Trial match panel:** after signing, a right-side panel shows 1–2 trials. Each criterion is marked met, not met, or unknown, with the supporting quote from the note. Wording is "possible match, refer to coordinator", never "eligible".
-- [ ] **Translated patient summary (stretch):** ElevenLabs dubbing reads a plain-language trial summary in one other language. Label it info only.
-- [ ] **Voice agent (cut unless time allows):** decide who it talks to before building anything.
+Built in `voice/` (see `voice/README.md`). The patient listens on the doctor's screen in the clinic. English first, Spanish second.
+
+- [x] **Trial script:** Claude writes a plain-language script in English and Spanish ("may qualify", voluntary, study team decides). The doctor approves it before anything plays.
+- [x] **Spoken summary:** ElevenLabs reads the approved script in English or Spanish.
+- [x] **A. Doctor's message dubbed:** the doctor records a short message; ElevenLabs dubbing turns it into Spanish in the doctor's own voice.
+- [x] **B. Trial Q&A agent:** the patient asks questions; the agent answers only from the trial record.
+- [x] **C. Teach-back check:** the agent asks the patient to explain the study back; Claude scores each key point for the doctor.
+- [ ] Test A–C end to end with real keys, then connect them to the right tab in `app/`.
+- [ ] Make one finished dub before the demo and keep its project ID as a backup.
+- [ ] **Back burner, D:** voice pre-screening for the "confirm with patient" items.
+- [ ] **Lowest priority:** dictation with Scribe (doctor talks, note is drafted).
 
 ### Risks to resolve
 

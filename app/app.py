@@ -20,8 +20,8 @@ MODEL = "claude-opus-5-5"
 DATA_FILE = HERE / "synthetic-patient-data.md"
 CACHE_FILE = HERE / ".cache.json"
 
-if (HERE / ".env").exists():
-    for line in (HERE / ".env").read_text().splitlines():
+for env_file in (HERE / ".env", HERE.parent / ".env"):  # app/.env, or the repo-level .env shared with voice/
+    for line in (env_file.read_text().splitlines() if env_file.exists() else []):
         if "=" in line:
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip())
@@ -29,12 +29,14 @@ ON_VERCEL = bool(os.environ.get("VERCEL"))
 SNAPSHOT = HERE / "snapshot"  # frozen trials + parsed criteria for the Vercel deploy (read-only disk)
 if ON_VERCEL:
     CACHE_FILE = Path("/tmp/cache.json")
+# An organization key that isn't scoped to a workspace must name one on every request.
+WORKSPACE = os.environ.get("ANTHROPIC_WORKSPACE_ID")
 client = None
 
 
 def get_client():
     global client
-    client = client or anthropic.Anthropic()
+    client = client or anthropic.Anthropic(**({"default_headers": {"anthropic-workspace-id": WORKSPACE}} if WORKSPACE else {}))
     return client
 
 

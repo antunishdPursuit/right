@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>right voice test bench</title>
+<style>
+  :root {
+    --bg: #eef1f4; --panel: #ffffff; --border: #c3ccd5; --divider: #e6eaee;
+    --text: #1f2a35; --muted: #5b6875; --accent: #0a6ebd; --accent-text: #ffffff;
+    --ok: #1f5e23; --ok-bg: #e3f1e4; --warn: #7a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde7e5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif; }
+  header { background: #2b5f8a; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+  header h1 { font-size: 16px; margin: 0; }
+  header .note { opacity: .85; font-size: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+  .chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--bad-bg); color: var(--bad); }
+  .chip.on { background: var(--ok-bg); color: var(--ok); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; }
+  section > h2 { margin: 0; font-size: 14px; padding: 8px 12px; border-bottom: 1px solid var(--divider);
+                 display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  section > h2 small { font-weight: 400; color: var(--muted); }
+  .bd { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid2 > * { min-width: 0; }
+  label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+  input, select, textarea { font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--border); border-radius: 3px; padding: 5px 7px; }
+  textarea { min-height: 170px; resize: vertical; width: 100%; }
+  button { font: inherit; cursor: pointer; border-radius: 3px; padding: 5px 12px;
+           border: 1px solid var(--border); background: #f4f6f8; color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .status { font-size: 12px; color: var(--muted); }
+  .status.error { color: var(--bad); font-weight: 600; }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .kp { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 6px; align-items: start; }
+  .kp input { width: 100%; }
+  .say { background: #f6f8fa; border: 1px solid var(--divider); border-radius: 3px; padding: 8px 10px; white-space: pre-wrap; }
+  .log { background: #f6f8fa; border: 1px solid var(--divider); border-radius: 3px; padding: 8px 10px;
+         max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .log .ai b { color: var(--accent); } .log .user b { color: var(--ok); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  td, th { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .pill { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+  .pill.understood { background: var(--ok-bg); color: var(--ok); }
+  .pill.partly { background: var(--warn-bg); color: var(--warn); }
+  .pill.missed { background: var(--bad-bg); color: var(--bad); }
+  .score { font-size: 20px; font-weight: 700; }
+  .locked { opacity: .55; pointer-events: none; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } .kp { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>right · voice test bench</h1>
+  <span class="note">Dev page for the voice backend. Trial information only, never patient details.</span>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <section>
+    <h2>1. Trial</h2>
+    <div class="bd">
+      <div class="row">
+        <label>ClinicalTrials.gov ID <input id="trialId" value="NCT06701903" size="16"></label>
+        <button id="loadTrial">Load trial</button>
+        <button id="draft" class="primary" disabled>Draft patient script with Claude</button>
+        <span class="status" id="trialStatus"></span>
+      </div>
+      <div class="meta" id="trialMeta"></div>
+    </div>
+  </section>
+
+  <section id="reviewSec" class="locked">
+    <h2>2. Doctor reviews and approves <small>Nothing is played or sent to an agent until it's approved.</small></h2>
+    <div class="bd">
+      <div class="grid2">
+        <label>Plain title (English) <input id="titleEn"></label>
+        <label>Plain title (Spanish) <input id="titleEs"></label>
+        <label>Script (English) <textarea id="scriptEn"></textarea></label>
+        <label>Script (Spanish) <textarea id="scriptEs"></textarea></label>
+      </div>
+      <div>
+        <div class="meta">Key points for the teach-back check</div>
+        <div id="keyPoints" class="bd" style="padding:6px 0"></div>
+      </div>
+      <div class="row">
+        <button id="approve" class="primary">Approve script</button>
+        <span class="status" id="approveStatus"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="playSec" class="locked">
+    <h2>3. Play the summary to the patient <small>ElevenLabs text to speech</small></h2>
+    <div class="bd">
+      <div class="row">
+        <label>Language <select id="playLang"></select></label>
+        <button id="play" class="primary">Play summary</button>
+        <span class="status" id="playStatus"></span>
+      </div>
+      <audio id="playAudio" controls hidden></audio>
+      <div class="say" id="playText"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A. Doctor's message in Spanish, in the doctor's own voice <small>ElevenLabs dubbing; takes a minute or more</small></h2>
+    <div class="bd">
+      <div class="row">
+        <button id="rec">Record message</button>
+        <button id="sample">Use sample doctor message</button>
+        <label>or upload audio <input type="file" id="upload" accept="audio/*,video/*"></label>
+        <button id="dub" class="primary" disabled>Dub into Spanish</button>
+        <span class="status" id="dubStatus"></span>
+      </div>
+      <audio id="recAudio" controls hidden></audio>
+      <div class="row">
+        <label>Reload a finished dub (backup for the demo) <input id="dubId" size="34" placeholder="project ID"></label>
+        <button id="dubLoad">Load</button>
+      </div>
+      <audio id="dubAudio" controls hidden></audio>
+      <div id="dubText"></div>
+    </div>
+  </section>
+
+  <section id="qaSec" class="locked">
+    <h2>B. Patient asks questions <small>ElevenLabs agent, answers only from the trial record</small></h2>
+    <div class="bd">
+      <div class="row">
+        <label>Language <select id="qaLang"></select></label>
+        <button id="qaStart" class="primary">Start conversation</button>
+        <button id="qaEnd" disabled>End</button>
+        <span class="status" id="qaStatus"></span>
+      </div>
+      <div class="log" id="qaLog"></div>
+    </div>
+  </section>
+
+  <section id="tbSec" class="locked">
+    <h2>C. Teach-back check <small>The agent asks the patient to explain the study; Claude scores understanding</small></h2>
+    <div class="bd">
+      <div class="row">
+        <label>Language <select id="tbLang"></select></label>
+        <button id="tbStart" class="primary">Start teach-back</button>
+        <button id="tbEnd" disabled>End and score</button>
+        <span class="status" id="tbStatus"></span>
+      </div>
+      <div class="log" id="tbLog"></div>
+      <div id="tbResult"></div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+const SDK = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.25.0/+esm";  // loaded only when an agent starts
+
+const $ = id => document.getElementById(id);
+let trialId = null, approvedScript = null, recorded = null;
+
+function status(id, text, kind = "") { $(id).textContent = text; $(id).className = "status " + kind; }
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let msg = r.statusText;
+    try {
+      const d = (await r.json()).detail;
+      msg = typeof d === "string" ? d : (d || []).map(x => x.msg || JSON.stringify(x)).join("; ") || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+  return r;
+}
+const post = (path, body) => api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- Config ---------- */
+const cfg = await (await api("/api/config")).json();
+$("chips").innerHTML = [["anthropic", "Claude key"], ["elevenlabs", "ElevenLabs key"], ["qa_agent", "Q&A agent"], ["teachback_agent", "Teach-back agent"]]
+  .map(([k, label]) => `<span class="chip ${cfg[k] ? "on" : ""}">${label}: ${cfg[k] ? "set" : "missing"}</span>`).join("");
+for (const sel of ["playLang", "qaLang", "tbLang"])
+  $(sel).innerHTML = Object.entries(cfg.languages).map(([code, name]) => `<option value="${code}">${name}</option>`).join("");
+
+/* ---------- 1. Trial ---------- */
+$("loadTrial").onclick = async () => {
+  status("trialStatus", "Loading…");
+  try {
+    const d = await (await api(`/api/trials/${encodeURIComponent($("trialId").value.trim())}`)).json();
+    trialId = d.trial.nctId;
+    clearReview();
+    $("trialMeta").innerHTML = `<b>${esc(d.trial.title)}</b><br>${esc(d.trial.sponsor)} · ${esc(d.trial.phase)} · ${esc(d.trial.site || "no site listed")}`;
+    $("draft").disabled = false;
+    status("trialStatus", "Loaded.", "ok");
+    if (d.approved) fillReview(d.approved, true);
+    else if (d.draft) fillReview(d.draft, false);
+  } catch (e) { status("trialStatus", e.message, "error"); }
+};
+
+$("draft").onclick = async () => {
+  status("trialStatus", "Claude is writing the script… (about 30 seconds)");
+  $("draft").disabled = true;
+  try {
+    fillReview(await (await post(`/api/trials/${trialId}/script?refresh=true`, {})).json(), false);
+    status("trialStatus", "Draft ready. Review it below.", "ok");
+  } catch (e) { status("trialStatus", e.message, "error"); }
+  $("draft").disabled = false;
+};
+
+/* ---------- 2. Review ---------- */
+function clearReview() {
+  for (const id of ["titleEn", "titleEs", "scriptEn", "scriptEs"]) $(id).value = "";
+  $("keyPoints").innerHTML = "";
+  $("reviewSec").classList.add("locked");
+  setApproved(null);
+}
+function fillReview(s, isApproved) {
+  $("reviewSec").classList.remove("locked");
+  $("titleEn").value = s.plain_title; $("titleEs").value = s.plain_title_es;
+  $("scriptEn").value = s.en; $("scriptEs").value = s.es;
+  $("keyPoints").innerHTML = s.key_points.map(k => `
+    <div class="kp" data-id="${esc(k.id)}"><b>${esc(k.id)}</b>
+      <input class="en" value="${esc(k.en)}" aria-label="${esc(k.id)} English">
+      <input class="es" value="${esc(k.es)}" aria-label="${esc(k.id)} Spanish"></div>`).join("");
+  setApproved(isApproved ? s : null);
+}
+function readReview() {
+  return {
+    plain_title: $("titleEn").value, plain_title_es: $("titleEs").value, en: $("scriptEn").value, es: $("scriptEs").value,
+    key_points: [...document.querySelectorAll(".kp")].map(r => ({ id: r.dataset.id, en: r.querySelector(".en").value, es: r.querySelector(".es").value })),
+  };
+}
+function setApproved(s) {
+  approvedScript = s;
+  for (const id of ["playSec", "qaSec", "tbSec"]) $(id).classList.toggle("locked", !s);
+  if (s) status("approveStatus", `Approved${s.approved_at ? " " + s.approved_at : ""}.`, "ok");
+  else status("approveStatus", "Not approved yet.");
+  showPlayText();
+}
+$("reviewSec").addEventListener("input", () => { if (approvedScript) setApproved(null); status("approveStatus", "Edited. Approve again to use these changes."); });
+$("approve").onclick = async () => {
+  try { setApproved(await (await post(`/api/trials/${trialId}/approve`, readReview())).json()); }
+  catch (e) { status("approveStatus", e.message, "error"); }
+};
+
+/* ---------- 3. Play ---------- */
+function showPlayText() { $("playText").textContent = approvedScript ? approvedScript[$("playLang").value] : ""; }
+$("playLang").onchange = showPlayText;
+$("play").onclick = async () => {
+  status("playStatus", "Generating audio…");
+  try {
+    const blob = await (await post(`/api/trials/${trialId}/speech`, { language: $("playLang").value })).blob();
+    const a = $("playAudio"); a.src = URL.createObjectURL(blob); a.hidden = false; await a.play();
+    status("playStatus", "Playing.", "ok");
+  } catch (e) { status("playStatus", e.message, "error"); }
+};
+
+/* ---------- A. Dub ---------- */
+let recorder = null;
+$("rec").onclick = async () => {
+  if (recorder) { recorder.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const type = recorder.mimeType || "audio/webm";
+      recorded = new File(chunks, "doctor-message." + (type.includes("mp4") ? "mp4" : "webm"), { type });
+      $("recAudio").src = URL.createObjectURL(recorded); $("recAudio").hidden = false;
+      $("rec").textContent = "Record again"; $("dub").disabled = false; recorder = null;
+      status("dubStatus", "Recorded. Listen back, then dub it.");
+    };
+    recorder.start();
+    $("rec").textContent = "Stop recording";
+    status("dubStatus", "Recording… speak for about 15 seconds.");
+  } catch (e) { status("dubStatus", "Microphone unavailable: " + e.message, "error"); }
+};
+$("sample").onclick = async () => {
+  status("dubStatus", "Generating a sample message in the stand-in doctor voice…");
+  try {
+    const blob = await (await post("/api/sample-doctor-message", {})).blob();
+    recorded = new File([blob], "sample-doctor-message.mp3", { type: "audio/mpeg" });
+    $("recAudio").src = URL.createObjectURL(recorded); $("recAudio").hidden = false; $("dub").disabled = false;
+    status("dubStatus", "Sample ready. Listen to it, then dub it into Spanish.", "ok");
+  } catch (e) { status("dubStatus", e.message, "error"); }
+};
+$("upload").onchange = () => {
+  recorded = $("upload").files[0] || null;
+  $("dub").disabled = !recorded;
+  if (recorded) { $("recAudio").src = URL.createObjectURL(recorded); $("recAudio").hidden = false; }
+};
+$("dub").onclick = async () => {
+  const fd = new FormData(); fd.append("file", recorded); fd.append("target_language", "es");
+  $("dub").disabled = true;
+  status("dubStatus", "Uploading…");
+  try {
+    const { project_id } = await (await api("/api/dub", { method: "POST", body: fd })).json();
+    $("dubId").value = project_id;
+    await pollDub(project_id);
+  } catch (e) { status("dubStatus", e.message, "error"); }
+  $("dub").disabled = false;
+};
+$("dubLoad").onclick = () => pollDub($("dubId").value.trim()).catch(e => status("dubStatus", e.message, "error"));
+
+let polling = false;
+async function pollDub(id) {
+  if (polling) return;
+  polling = true;
+  try { await pollLoop(id); } finally { polling = false; }
+}
+async function pollLoop(id) {
+  const started = Date.now();
+  let misses = 0;
+  while (true) {
+    if (Date.now() - started > 5 * 60000) throw new Error(`Dubbing is taking over 5 minutes (project ${id}). Try Load later.`);
+    let d;
+    try { d = await (await api(`/api/dub/${encodeURIComponent(id)}`)).json(); misses = 0; }
+    catch (e) { if (++misses >= 3) throw e; await new Promise(r => setTimeout(r, 4000)); continue; }
+    if (d.status === "failed") throw new Error("Dubbing failed: " + JSON.stringify(d.error));
+    if (d.status === "completed") {
+      $("dubAudio").src = `/api/dub/${encodeURIComponent(id)}/audio`; $("dubAudio").hidden = false;
+      $("dubText").innerHTML = `<table><tr><th>Doctor said</th><th>Spanish</th></tr>${(d.segments || [])
+        .map(s => `<tr><td>${esc(s.source)}</td><td>${esc(s.translation)}</td></tr>`).join("")}</table>`;
+      status("dubStatus", "Dub ready. Project ID saved in the box above for reuse.", "ok");
+      return;
+    }
+    status("dubStatus", `Dubbing: ${d.status}… ${Math.round((Date.now() - started) / 1000)}s`);
+    await new Promise(r => setTimeout(r, 4000));
+  }
+}
+
+/* ---------- B and C. Agents ---------- */
+let agentBusy = false;  // only one agent session at a time: they share the microphone
+function agentPanel(kind, p) {
+  let convo = null, convoId = null, graded = false;
+  const log = (who, text) => {
+    const div = document.createElement("div");
+    div.className = who === "user" ? "user" : "ai";
+    div.innerHTML = `<b>${who === "user" ? "Patient" : "Agent"}:</b> ${esc(text)}`;
+    $(p.log).append(div); $(p.log).scrollTop = $(p.log).scrollHeight;
+  };
+  $(p.start).onclick = async () => {
+    if (agentBusy) { status(p.status, "Another agent conversation is still running. End it first.", "error"); return; }
+    agentBusy = true;
+    $(p.start).disabled = true; $(p.log).innerHTML = ""; graded = false; convoId = null;
+    if (p.result) $(p.result).innerHTML = "";
+    status(p.status, "Connecting…");
+    try {
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mic.getTracks().forEach(t => t.stop());
+      const { Conversation } = await import(SDK);
+      const lang = $(p.lang).value;
+      const s = await (await api(`/api/agents/${kind}/session?trial_id=${encodeURIComponent(trialId)}&language=${lang}`)).json();
+      convo = await Conversation.startSession({
+        conversationToken: s.token,
+        connectionType: "webrtc",
+        dynamicVariables: s.dynamic_variables,
+        overrides: { agent: { language: s.language } },
+        onConnect: ({ conversationId } = {}) => { convoId = conversationId || convoId; status(p.status, "Connected. Talk to the agent.", "ok"); $(p.end).disabled = false; },
+        onMessage: m => log(m.source ?? m.role, m.message),
+        onModeChange: m => status(p.status, m.mode === "speaking" ? "Agent speaking…" : "Listening…", "ok"),
+        onError: e => status(p.status, String(e?.message || e), "error"),
+        onDisconnect: () => finish(),
+      });
+      convoId = convo.getId() || convoId;
+    } catch (e) {
+      status(p.status, e.message, "error"); $(p.start).disabled = false; agentBusy = false;
+    }
+  };
+  $(p.end).onclick = () => convo?.endSession();
+  async function finish() {
+    $(p.start).disabled = false; $(p.end).disabled = true; convo = null; agentBusy = false;
+    if (!p.onDone || graded || !convoId) { status(p.status, "Conversation ended."); return; }
+    graded = true;
+    await p.onDone(convoId);
+  }
+}
+agentPanel("qa", { start: "qaStart", end: "qaEnd", status: "qaStatus", log: "qaLog", lang: "qaLang" });
+agentPanel("teachback", { start: "tbStart", end: "tbEnd", status: "tbStatus", log: "tbLog", lang: "tbLang", result: "tbResult",
+  onDone: async id => {
+    status("tbStatus", "Scoring with Claude…");
+    try {
+      const g = await (await post("/api/teachback/grade", { conversation_id: id, trial_id: trialId })).json();
+      $("tbResult").innerHTML = `
+        <div class="score">${g.understood} of ${g.total} key points understood${g.partly ? `, ${g.partly} partly` : ""}</div>
+        <p>${esc(g.clinician_note)}</p>
+        <table><tr><th>Key point</th><th>Result</th><th>What the patient said</th></tr>${g.points.map(p => `
+          <tr><td>${esc(p.point)}</td><td><span class="pill ${p.result}">${p.result}</span></td><td>${esc(p.evidence)}</td></tr>`).join("")}</table>`;
+      status("tbStatus", "Scored.", "ok");
+    } catch (e) { status("tbStatus", e.message, "error"); }
+  } });
+</script>
+</body>
+</html>

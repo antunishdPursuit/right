@@ -20,14 +20,27 @@ MODEL = "claude-opus-5-5"
 DATA_FILE = HERE / "synthetic-patient-data.md"
 CACHE_FILE = HERE / ".cache.json"
 
-for line in (HERE / ".env").read_text().splitlines():
-    if "=" in line:
-        k, v = line.split("=", 1)
-        os.environ.setdefault(k.strip(), v.strip())
-client = anthropic.Anthropic()
+if (HERE / ".env").exists():
+    for line in (HERE / ".env").read_text().splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+SNAPSHOT = HERE / "snapshot"  # frozen trials + parsed criteria for the Vercel deploy (read-only disk)
+if ON_VERCEL:
+    CACHE_FILE = Path("/tmp/cache.json")
+client = None
+
+
+def get_client():
+    global client
+    client = client or anthropic.Anthropic()
+    return client
+
 
 # ponytail: one JSON file cache, so a demo re-run is instant and survives a network drop
-CACHE = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
+_seed = CACHE_FILE if CACHE_FILE.exists() else SNAPSHOT / "cache.json"
+CACHE = json.loads(_seed.read_text()) if _seed.exists() else {}
 CACHE_LOCK = threading.Lock()
 
 
@@ -182,7 +195,7 @@ def call_tool(tool, system, prompt):
     key = hashlib.sha256(json.dumps([tool["name"], system, prompt]).encode()).hexdigest()
     if key in CACHE:
         return CACHE[key]
-    msg = client.messages.create(
+    msg = get_client().messages.create(
         # Opus 5.5 rejects a forced tool_choice, so ask for the tool in the system prompt instead.
         model=MODEL, max_tokens=4000, system=system + f" Respond only by calling the {tool['name']} tool.",
         tools=[tool], tool_choice={"type": "auto"},
@@ -303,7 +316,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 PATIENTS = load_patients()
-TRIALS = demo_trials()
+TRIALS = json.loads((SNAPSHOT / "trials.json").read_text()) if ON_VERCEL else demo_trials()
 
 if __name__ == "__main__":
     assert len(PATIENTS) == 24 and PATIENTS[0]["gad7"] == 8 and PATIENTS[3]["fields"].get("Meds"), PATIENTS[0]

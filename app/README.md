@@ -28,3 +28,7 @@ Results are cached in `.cache.json`, so a second run for the same patient is ins
 - `synthetic-patient-data.md`: 24 synthetic personas and the reference trial. The answer key in section 3 is not sent to the model.
 
 Screening aid only. Final eligibility is determined by the study team. Synthetic data only.
+
+## Vercel
+
+The `app` folder deploys to Vercel as is (root directory `app`). `api/index.py` reuses the handler in `app.py`, and `vercel.json` routes `/api/*` to it and `/` to `static/index.html`. On Vercel, the trial list and parsed criteria come from `snapshot/`, a frozen copy taken on 2026-10-08, because the function disk is read-only. Set `ANTHROPIC_API_KEY` as a Vercel environment variable, then redeploy.

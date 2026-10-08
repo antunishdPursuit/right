@@ -185,7 +185,7 @@ const post = (path, body) => api(path, { method: "POST", headers: { "Content-Typ
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 /* ---------- Config ---------- */
-const cfg = await (await api("/api/config")).json();
+const cfg = await (await api("api/config")).json();
 $("chips").innerHTML = [["anthropic", "Claude key"], ["elevenlabs", "ElevenLabs key"], ["qa_agent", "Q&A agent"], ["teachback_agent", "Teach-back agent"]]
   .map(([k, label]) => `<span class="chip ${cfg[k] ? "on" : ""}">${label}: ${cfg[k] ? "set" : "missing"}</span>`).join("");
 for (const sel of ["playLang", "qaLang", "tbLang"])
@@ -195,7 +195,7 @@ for (const sel of ["playLang", "qaLang", "tbLang"])
 $("loadTrial").onclick = async () => {
   status("trialStatus", "Loading…");
   try {
-    const d = await (await api(`/api/trials/${encodeURIComponent($("trialId").value.trim())}`)).json();
+    const d = await (await api(`api/trials/${encodeURIComponent($("trialId").value.trim())}`)).json();
     trialId = d.trial.nctId;
     clearReview();
     $("trialMeta").innerHTML = `<b>${esc(d.trial.title)}</b><br>${esc(d.trial.sponsor)} · ${esc(d.trial.phase)} · ${esc(d.trial.site || "no site listed")}`;
@@ -210,7 +210,7 @@ $("draft").onclick = async () => {
   status("trialStatus", "Claude is writing the script… (about 30 seconds)");
   $("draft").disabled = true;
   try {
-    fillReview(await (await post(`/api/trials/${trialId}/script?refresh=true`, {})).json(), false);
+    fillReview(await (await post(`api/trials/${trialId}/script?refresh=true`, {})).json(), false);
     status("trialStatus", "Draft ready. Review it below.", "ok");
   } catch (e) { status("trialStatus", e.message, "error"); }
   $("draft").disabled = false;
@@ -248,7 +248,7 @@ function setApproved(s) {
 }
 $("reviewSec").addEventListener("input", () => { if (approvedScript) setApproved(null); status("approveStatus", "Edited. Approve again to use these changes."); });
 $("approve").onclick = async () => {
-  try { setApproved(await (await post(`/api/trials/${trialId}/approve`, readReview())).json()); }
+  try { setApproved(await (await post(`api/trials/${trialId}/approve`, readReview())).json()); }
   catch (e) { status("approveStatus", e.message, "error"); }
 };
 
@@ -258,7 +258,7 @@ $("playLang").onchange = showPlayText;
 $("play").onclick = async () => {
   status("playStatus", "Generating audio…");
   try {
-    const blob = await (await post(`/api/trials/${trialId}/speech`, { language: $("playLang").value })).blob();
+    const blob = await (await post(`api/trials/${trialId}/speech`, { language: $("playLang").value })).blob();
     const a = $("playAudio"); a.src = URL.createObjectURL(blob); a.hidden = false; await a.play();
     status("playStatus", "Playing.", "ok");
   } catch (e) { status("playStatus", e.message, "error"); }
@@ -289,7 +289,7 @@ $("rec").onclick = async () => {
 $("sample").onclick = async () => {
   status("dubStatus", "Generating a sample message in the stand-in doctor voice…");
   try {
-    const blob = await (await post("/api/sample-doctor-message", {})).blob();
+    const blob = await (await post("api/sample-doctor-message", {})).blob();
     recorded = new File([blob], "sample-doctor-message.mp3", { type: "audio/mpeg" });
     $("recAudio").src = URL.createObjectURL(recorded); $("recAudio").hidden = false; $("dub").disabled = false;
     status("dubStatus", "Sample ready. Listen to it, then dub it into Spanish.", "ok");
@@ -305,7 +305,7 @@ $("dub").onclick = async () => {
   $("dub").disabled = true;
   status("dubStatus", "Uploading…");
   try {
-    const { project_id } = await (await api("/api/dub", { method: "POST", body: fd })).json();
+    const { project_id } = await (await api("api/dub", { method: "POST", body: fd })).json();
     $("dubId").value = project_id;
     await pollDub(project_id);
   } catch (e) { status("dubStatus", e.message, "error"); }
@@ -325,11 +325,11 @@ async function pollLoop(id) {
   while (true) {
     if (Date.now() - started > 5 * 60000) throw new Error(`Dubbing is taking over 5 minutes (project ${id}). Try Load later.`);
     let d;
-    try { d = await (await api(`/api/dub/${encodeURIComponent(id)}`)).json(); misses = 0; }
+    try { d = await (await api(`api/dub/${encodeURIComponent(id)}`)).json(); misses = 0; }
     catch (e) { if (++misses >= 3) throw e; await new Promise(r => setTimeout(r, 4000)); continue; }
     if (d.status === "failed") throw new Error("Dubbing failed: " + JSON.stringify(d.error));
     if (d.status === "completed") {
-      $("dubAudio").src = `/api/dub/${encodeURIComponent(id)}/audio`; $("dubAudio").hidden = false;
+      $("dubAudio").src = `api/dub/${encodeURIComponent(id)}/audio`; $("dubAudio").hidden = false;
       $("dubText").innerHTML = `<table><tr><th>Doctor said</th><th>Spanish</th></tr>${(d.segments || [])
         .map(s => `<tr><td>${esc(s.source)}</td><td>${esc(s.translation)}</td></tr>`).join("")}</table>`;
       status("dubStatus", "Dub ready. Project ID saved in the box above for reuse.", "ok");
@@ -361,7 +361,7 @@ function agentPanel(kind, p) {
       mic.getTracks().forEach(t => t.stop());
       const { Conversation } = await import(SDK);
       const lang = $(p.lang).value;
-      const s = await (await api(`/api/agents/${kind}/session?trial_id=${encodeURIComponent(trialId)}&language=${lang}`)).json();
+      const s = await (await api(`api/agents/${kind}/session?trial_id=${encodeURIComponent(trialId)}&language=${lang}`)).json();
       convo = await Conversation.startSession({
         conversationToken: s.token,
         connectionType: "webrtc",
@@ -391,7 +391,7 @@ agentPanel("teachback", { start: "tbStart", end: "tbEnd", status: "tbStatus", lo
   onDone: async id => {
     status("tbStatus", "Scoring with Claude…");
     try {
-      const g = await (await post("/api/teachback/grade", { conversation_id: id, trial_id: trialId })).json();
+      const g = await (await post("api/teachback/grade", { conversation_id: id, trial_id: trialId })).json();
       $("tbResult").innerHTML = `
         <div class="score">${g.understood} of ${g.total} key points understood${g.partly ? `, ${g.partly} partly` : ""}</div>
         <p>${esc(g.clinician_note)}</p>

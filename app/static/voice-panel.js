@@ -4,7 +4,9 @@
    own voice goes to ElevenLabs, and the teach-back transcript goes to Claude for scoring. */
 const SDK = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.25.0/+esm";  // loaded only when an agent starts
 
-const VOICE = window.RIGHT_VOICE_URL || "http://localhost:8001";
+// Locally the voice service runs on its own port; on Vercel it's served from /voice on this same site.
+const VOICE = window.RIGHT_VOICE_URL
+  || (["localhost", "127.0.0.1"].includes(location.hostname) ? "http://localhost:8001" : "/voice");
 const LANGS = { en: "English", es: "Spanish" };
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const enc = encodeURIComponent;
@@ -100,13 +102,12 @@ function msg(id, text, kind = "") { const el = q("#" + id); if (el) { el.textCon
 /* ---------- Open / close ---------- */
 async function open(trial, criteria) {
   await stopAll();
-  S = { trial, id: trial.nctId, script: null, approved: null, lang: "en", drafting: false };
+  S = { trial, criteria, id: trial.nctId, script: null, approved: null, lang: "en", drafting: false };
   recorded = null;
   root.hidden = false;
   render();
   try {
-    await post("/api/trials", { trial, criteria_summary: criteria });
-    const d = await (await api(`/api/trials/${enc(S.id)}`)).json();
+    const d = await (await post("/api/trials", { trial, criteria_summary: criteria })).json();
     S.approved = d.approved;
     S.script = structuredClone(d.approved || d.draft || null);
     if (S.script) render(); else await draft(false);
@@ -118,6 +119,9 @@ async function stopAll() {
   if (convo) { const c = convo; convo = null; await c.endSession().catch(() => {}); }
 }
 function close() { root.hidden = true; stopAll(); S = null; }
+
+// Sent with every request, so a fresh serverless instance (Vercel) can answer without the earlier steps' memory.
+const ctx = () => ({ trial: S.trial, criteria_summary: S.criteria, script: S.approved });
 
 /* ---------- Render ---------- */
 function render() {
@@ -198,7 +202,7 @@ function setApproved(a) {
 async function draft(refresh) {
   S.script = null; S.approved = null; render();
   try {
-    S.script = await (await post(`/api/trials/${enc(S.id)}/script${refresh ? "?refresh=true" : ""}`, {})).json();
+    S.script = await (await post(`/api/trials/${enc(S.id)}/script${refresh ? "?refresh=true" : ""}`, { ...ctx(), script: null })).json();
     render();
   } catch (e) { msg("scriptMsg", "Claude couldn't draft the script: " + e.message, "error"); }
 }
@@ -231,7 +235,7 @@ root.addEventListener("click", async e => {
   if (act === "play") {
     msg("playMsg", "Generating audio…");
     try {
-      const blob = await (await post(`/api/trials/${enc(S.id)}/speech`, { language: S.lang })).blob();
+      const blob = await (await post(`/api/trials/${enc(S.id)}/speech`, { ...ctx(), language: S.lang })).blob();
       const a = q("#vpPlay"); a.src = URL.createObjectURL(blob); a.hidden = false; await a.play();
       msg("playMsg", "Playing.", "ok");
     } catch (err) { msg("playMsg", err.message, "error"); }
@@ -344,7 +348,7 @@ async function startAgent(kind, btn) {
         "Microphone for this browser, and System Settings › Sound › Input for the right device and level. Then try again.");
     }
     const { Conversation } = await import(SDK);
-    const s = await (await api(`/api/agents/${kind}/session?trial_id=${enc(S.id)}&language=${S.lang}`)).json();
+    const s = await (await post(`/api/agents/${kind}/session`, { ...ctx(), trial_id: S.id, language: S.lang })).json();
     const c = await Conversation.startSession({
       conversationToken: s.token,
       connectionType: "webrtc",
@@ -389,7 +393,7 @@ async function startAgent(kind, btn) {
     if (kind !== "teachback" || !convoId) return msg(kind + "Msg", "Conversation ended.");
     msg(kind + "Msg", "Scoring with Claude…");
     try {
-      const g = await (await post("/api/teachback/grade", { conversation_id: convoId, trial_id: trialId })).json();
+      const g = await (await post("/api/teachback/grade", { ...ctx(), conversation_id: convoId, trial_id: trialId })).json();
       if (mine !== session) return;
       q("#vpGrade").innerHTML = `
         <div class="vp-score">${g.understood} of ${g.total} key points understood${g.partly ? `, ${g.partly} partly` : ""}</div>

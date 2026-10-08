@@ -1,9 +1,10 @@
 """ElevenLabs agent definitions: trial Q&A (idea B) and teach-back check (idea C).
 
-Edit the prompts here, then run `python agents.py`. It creates both agents the first time and writes their IDs to
-voice/.env; after that it updates the same agents in place.
+Edit the prompts here, then run `python agents.py` to update the team's two shared agents in place.
+`python agents.py --new` creates your own pair instead and writes their IDs to voice/.env.
 """
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -71,6 +72,7 @@ end the call.
 AGENTS = {
     "qa": {
         "env": "QA_AGENT_ID",
+        "id": "agent_7001m4ex14sqfp9taxva3r9d2dgc",  # the team's agent; private, so the ID alone grants nothing
         "name": "right: trial questions",
         "prompt": QA_PROMPT,
         "first": {
@@ -82,6 +84,7 @@ AGENTS = {
     },
     "teachback": {
         "env": "TEACHBACK_AGENT_ID",
+        "id": "agent_1601m4ex17b1e6zajq9mnjty1k5q",
         "name": "right: teach-back check",
         "prompt": TEACHBACK_PROMPT,
         "first": {
@@ -94,6 +97,11 @@ AGENTS = {
                          "key_points": "- (key points)"},
     },
 }
+
+
+def agent_id(kind):
+    """The agent to use: .env override first, then the team's shared agent."""
+    return os.environ.get(AGENTS[kind]["env"]) or AGENTS[kind]["id"]
 
 
 def config(kind, voice_id):
@@ -121,21 +129,22 @@ def config(kind, voice_id):
 
 
 def main():
-    load_dotenv(HERE / ".env")
-    load_dotenv(HERE.parent / ".env")
+    for env_file in (HERE / ".env", HERE.parent / ".env", HERE.parent.parent / ".env"):
+        load_dotenv(env_file)
     import eleven
 
     voice_id = os.environ.get("ELEVENLABS_AGENT_VOICE_ID") or AGENT_VOICE
+    new = "--new" in sys.argv  # create your own agents instead of updating the team's shared ones
     for kind, a in AGENTS.items():
-        agent_id = os.environ.get(a["env"])
-        if agent_id:
-            eleven.update_agent(agent_id, config(kind, voice_id))
-            print(f"Updated {a['name']}: {agent_id}")
+        aid = None if new else agent_id(kind)
+        if aid:
+            eleven.update_agent(aid, config(kind, voice_id))
+            print(f"Updated {a['name']}: {aid}")
         else:
-            agent_id = eleven.create_agent(config(kind, voice_id))
+            aid = eleven.create_agent(config(kind, voice_id))
             with open(HERE / ".env", "a") as f:
-                f.write(f"\n{a['env']}={agent_id}\n")
-            print(f"Created {a['name']}: {agent_id} (saved to .env as {a['env']})")
+                f.write(f"\n{a['env']}={aid}\n")
+            print(f"Created {a['name']}: {aid} (saved to .env as {a['env']})")
 
 
 if __name__ == "__main__":

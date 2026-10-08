@@ -14,7 +14,7 @@ Mockup file: `ehr-notes-mockup.html`. Placeholder patients only; swap in the tea
 
 ### Voice plan (decided 2026-10-08)
 
-Built in `voice/` (see `voice/README.md`). The patient listens on the doctor's screen in the clinic. English first, Spanish second.
+Built in `app/voice/` (see `app/voice/README.md`). The patient listens on the doctor's screen in the clinic. English first, Spanish second.
 
 - [x] **Trial script:** Claude writes a plain-language script in English and Spanish ("may qualify", voluntary, study team decides). The doctor approves it before anything plays.
 - [x] **Spoken summary:** ElevenLabs reads the approved script in English or Spanish.

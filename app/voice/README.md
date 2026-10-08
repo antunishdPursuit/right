@@ -20,15 +20,15 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-Put the keys in the repo-level `.env` (shared with `app/`): `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, and `ANTHROPIC_WORKSPACE_ID` if your Anthropic key is an organization key that isn't scoped to a workspace. `voice/.env` also works, but don't leave empty `KEY=` lines in it: an empty value hides the repo-level one. Both files are git-ignored; never commit them.
+Put the keys in the repo-level `.env` (shared with the trial-match app): `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, and `ANTHROPIC_WORKSPACE_ID` if your Anthropic key is an organization key that isn't scoped to a workspace. `voice/.env` also works, but don't leave empty `KEY=` lines in it: an empty value hides the repo-level one. Both files are git-ignored; never commit them.
 
-The two ElevenLabs agents already exist on the team account. Ask for `QA_AGENT_ID` and `TEACHBACK_AGENT_ID` and add them to `voice/.env` rather than creating duplicates. Only if you need your own agents, run this; it creates them and writes the IDs into `voice/.env`:
+The two ElevenLabs agents already exist on the team account, and their IDs are built into `agents.py`, so there's nothing to create. After editing the agent prompts, push them to the shared agents with:
 
 ```bash
 .venv/bin/python agents.py
 ```
 
-To change what an agent says, edit the prompts in `agents.py` and run the same command again. It updates the existing agents.
+To make your own pair instead, run `.venv/bin/python agents.py --new`; it writes their IDs into `voice/.env`.
 
 ## Run
 
@@ -38,9 +38,9 @@ To change what an agent says, edit the prompts in `agents.py` and run the same c
 
 Open http://localhost:8001 for the test page. It runs top to bottom: load a trial, draft the script, approve it, play it, then try A, B and C. The microphone is needed for recording and for both agents.
 
-## How it fits with `app/`
+## How it fits with the trial-match app
 
-The trial-match app in `../app` runs on port 8000. This service runs on port 8001 and allows calls from port 8000. To voice a trial from the match app, post it as-is:
+The trial-match app (`app/app.py`) runs on port 8000. This service runs on port 8001 and allows calls from port 8000. To voice a trial from the match app, post it as-is:
 
 ```
 POST /api/trials            {"trial": <trial object from /api/match>, "criteria_summary": <its "criteria" object>}
@@ -69,5 +69,6 @@ That also works for the team reference trial (`REF-GAD-01`), which isn't on Clin
 - **Dubbing takes a minute or more,** and each new dub is billed for one language up front. Before the demo, make one and keep its project ID. The test page can reload a finished dub by ID.
 - **Agent speed:** both agents use `claude-opus-5-5`. If replies feel slow in conversation, change `LLM` in `agents.py` to `claude-sonnet-5-5` or `claude-haiku-5-5`, then rerun `agents.py`.
 - **Cache:** drafts and approved scripts are saved in `.cache.json` (git-ignored), so restarting the server doesn't re-bill Claude. Delete the file to start fresh.
+- **Vercel:** `app/api/voice.py` serves this service under `/voice` on the deployed site. Needs `ELEVENLABS_API_KEY` (and `ANTHROPIC_WORKSPACE_ID` for an organization key) in the Vercel environment variables. Each request may hit a fresh instance, so the panel sends the trial and approved script along with every call.
 - **Restart after code changes:** the server runs without auto-reload. Spoken audio is cached in memory only, so a restart re-generates it on first play.
 - **Not for real patients:** the free ElevenLabs plan has no BAA or zero-retention mode, and the translated script is information only. Signing a patient up needs a qualified interpreter and the study's approved consent materials.

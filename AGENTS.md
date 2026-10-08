@@ -10,9 +10,9 @@ The team has a two-hour build and a 2–3 minute live demo. A demo that works ev
 | --- | --- |
 | `app/app.py` | Standard-library HTTP server on port 8000. Loads the synthetic patients, fetches trials from ClinicalTrials.gov API v2, and calls Claude to parse criteria and screen patients. |
 | `app/static/index.html` | The whole EHR mockup, including the trial-match tab. This is the live UI. |
-| `app/static/voice-panel.js` | The "Explain to patient" side panel. Calls the voice service at `window.RIGHT_VOICE_URL`, defaulting to `http://localhost:8001`. |
+| `app/static/voice-panel.js` | The "Explain to patient" side panel. Calls the voice service: `http://localhost:8001` when the page runs on localhost, `/voice` on the same site when deployed (override with `window.RIGHT_VOICE_URL`). |
 | `app/synthetic-patient-data.md` | 24 synthetic patients, the team reference trial (`REF-GAD-01`), and an answer key in section 3. `app.py` parses this file by its headings and field labels and asserts there are 24 patients, so keep that format. The answer key is for checking results and is never sent to the model. |
-| `voice/` | FastAPI service on port 8001. Claude writes the patient script and grades teach-back; ElevenLabs handles speech, dubbing, and two voice agents. `voice/README.md` lists the endpoints. |
+| `app/voice/` | FastAPI service: port 8001 locally, `/voice` on Vercel (via `app/api/voice.py`). Claude writes the patient script and grades teach-back; ElevenLabs handles speech, dubbing, and two voice agents. `app/voice/README.md` lists the endpoints. |
 | `ehr-notes-mockup.html` | Earlier standalone mockup, superseded by `app/static/index.html`. |
 | `CHECKLIST.md` | Current decisions, open risks, and what is in scope. Read it before deciding what to build, and record new decisions there. |
 | `PRD.md`, `SYSTEM_FLOW.md` | The full product vision. Much of it (SMART on FHIR, Postgres, wearables, a 12-week plan) is beyond the demo. |
@@ -20,7 +20,7 @@ The team has a two-hour build and a 2–3 minute live demo. A demo that works ev
 
 ## Run it
 
-Keys go in a git-ignored `.env`: `app/.env`, `voice/.env`, or one at the repo root. Set `ANTHROPIC_API_KEY` and `ELEVENLABS_API_KEY`, plus `ANTHROPIC_WORKSPACE_ID` only if the Anthropic key isn't scoped to a workspace; `voice/.env.example` lists the optional ones. This repository is public on GitHub, so a key that reaches a commit is exposed immediately. Check `git status` for stray files before committing.
+Keys go in a git-ignored `.env`: `app/.env`, `app/voice/.env`, or one at the repo root. Set `ANTHROPIC_API_KEY` and `ELEVENLABS_API_KEY`, plus `ANTHROPIC_WORKSPACE_ID` only if the Anthropic key isn't scoped to a workspace; `app/voice/.env.example` lists the optional ones. This repository is public on GitHub, so a key that reaches a commit is exposed immediately. Check `git status` for stray files before committing.
 
 Trial-match app, from `app/`:
 
@@ -30,7 +30,7 @@ uv run --with anthropic app.py
 
 Wait for `prewarm done` in the output (about 40 seconds) before opening http://localhost:8000.
 
-Voice service, from `voice/`, after the one-time setup in `voice/README.md`:
+Voice service, from `app/voice/`, after the one-time setup in `app/voice/README.md`:
 
 ```bash
 .venv/bin/uvicorn server:app --port 8001
@@ -44,7 +44,7 @@ There is no test suite. `app.py` checks the parsed data with assertions at start
 
 The Vercel function disk is read-only, so the trial list and parsed criteria come from `app/snapshot/`, a frozen copy taken on 2026-10-08, and only patient screening calls Claude live. Cached Claude results are keyed on the exact prompt text, so editing a prompt in `app.py` makes every snapshot entry miss and each trial gets re-parsed live on the next match. After changing a prompt, rebuild both snapshot files from one local run so they stay in step.
 
-The voice service is not part of the Vercel deploy, and its CORS list allows only port 8000 on localhost. The voice panel works when both services run locally. On a deployed page it needs the voice service hosted somewhere, `window.RIGHT_VOICE_URL` pointed at it, and that origin added to the CORS list in `voice/server.py`.
+The voice service deploys with it: `api/voice.py` serves `app/voice/server.py` under `/voice`, and the panel calls `/voice` when it isn't on localhost. It also needs `ELEVENLABS_API_KEY` (and `ANTHROPIC_WORKSPACE_ID` for an organization Anthropic key) in the Vercel environment variables. Each request may reach a fresh function instance, so the panel sends the trial and the approved script with every call; the server enforces approval from what it receives.
 
 ## Product rules
 
@@ -59,12 +59,12 @@ These come from the team's clinicians and from the event's privacy limits. Each 
 
 ## Calling Claude
 
-Every Claude call uses `claude-opus-5-5`: `MODEL` in `app/app.py` and `voice/claude_text.py`, and `LLM` in `voice/agents.py` for the ElevenLabs agents. On this model:
+Every Claude call uses `claude-opus-5-5`: `MODEL` in `app/app.py` and `app/voice/claude_text.py`, and `LLM` in `app/voice/agents.py` for the ElevenLabs agents. On this model:
 
-- Forced tool use (`tool_choice` of `any` or `tool`) returns a 400. `app.py` uses `tool_choice: auto` and names the tool in the system prompt; `voice/claude_text.py` uses structured outputs through `messages.parse`. Follow the pattern the file already uses.
+- Forced tool use (`tool_choice` of `any` or `tool`) returns a 400. `app.py` uses `tool_choice: auto` and names the tool in the system prompt; `app/voice/claude_text.py` uses structured outputs through `messages.parse`. Follow the pattern the file already uses.
 - Thinking is always on. Sending `thinking: {type: "disabled"}`, `budget_tokens`, `temperature`, `top_p`, or an assistant prefill returns a 400. Effort controls depth and cost, and its default is `medium`, so set `output_config.effort` explicitly where it matters.
 - Thinking counts toward `max_tokens`, so size it for the thinking as well as the reply.
-- A safety classifier can decline with `stop_reason: "refusal"`, so check `stop_reason` before reading the content. `voice/claude_text.py` also opts into server-side fallback with `fallbacks="default"`.
+- A safety classifier can decline with `stop_reason: "refusal"`, so check `stop_reason` before reading the content. `app/voice/claude_text.py` also opts into server-side fallback with `fallbacks="default"`.
 
 Both services cache Claude results in a git-ignored `.cache.json` keyed on the prompt, which keeps demo re-runs instant and free. Delete the file to force fresh calls.
 

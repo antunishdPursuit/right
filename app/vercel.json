@@ -4,9 +4,21 @@
     "api/index.py": {
       "maxDuration": 120,
       "includeFiles": "{app.py,synthetic-patient-data.md,snapshot/**}"
+    },
+    "api/voice.py": {
+      "maxDuration": 120,
+      "includeFiles": "voice/**"
     }
   },
   "rewrites": [
+    {
+      "source": "/voice/(.*)",
+      "destination": "/api/voice"
+    },
+    {
+      "source": "/voice-panel.js",
+      "destination": "/static/voice-panel.js"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/index"

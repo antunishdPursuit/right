@@ -1,6 +1,7 @@
 """right voice service: Claude trial script + ElevenLabs speech, dubbing, Q&A agent, and teach-back.
 
-Run from the voice folder:  .venv/bin/uvicorn server:app --port 8001   then open http://localhost:8001
+Local:  from app/voice, .venv/bin/uvicorn server:app --port 8001   then open http://localhost:8001
+Vercel: app/api/voice.py serves this app under /voice on the same site as the trial match.
 
 No patient record goes to Claude or ElevenLabs: scripts and agents are built from trial information only. During the
 Q&A and teach-back calls, the patient's own voice goes to ElevenLabs, and the teach-back transcript goes to Claude.
@@ -23,15 +24,16 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 HERE = Path(__file__).parent
-load_dotenv(HERE / ".env")
-load_dotenv(HERE.parent / ".env")  # also accept keys in the repo-level .env
+for env_file in (HERE / ".env", HERE.parent / ".env", HERE.parent.parent / ".env"):  # voice/, app/, or repo level
+    load_dotenv(env_file)
+ON_VERCEL = bool(os.environ.get("VERCEL"))
 
 import agents  # noqa: E402  (after .env is loaded)
 import claude_text  # noqa: E402
 import eleven  # noqa: E402
 
 LANGS = {"en": "English", "es": "Spanish"}
-STORE_FILE = HERE / ".cache.json"
+STORE_FILE = Path("/tmp/voice-cache.json") if ON_VERCEL else HERE / ".cache.json"  # Vercel's disk is read-only
 # One JSON file: trials, draft and approved scripts. Survives restarts, so Claude isn't re-billed for a demo re-run.
 STORE = json.loads(STORE_FILE.read_text()) if STORE_FILE.exists() else {"trials": {}, "draft": {}, "approved": {}}
 AUDIO = {}  # (trial_id, language, text hash) -> mp3 bytes; replays don't re-bill ElevenLabs
@@ -50,7 +52,7 @@ def save():
     """Write to a temp file, then swap it in, so a crash mid-write can't corrupt the cache."""
     with _save_lock:
         data = json.dumps(STORE, indent=1, ensure_ascii=False)
-        fd, tmp = tempfile.mkstemp(dir=HERE, suffix=".tmp")
+        fd, tmp = tempfile.mkstemp(dir=STORE_FILE.parent, suffix=".tmp")
         with os.fdopen(fd, "w") as f:
             f.write(data)
         os.replace(tmp, STORE_FILE)
@@ -62,7 +64,8 @@ def fail(e, code=502):
 
 def need(var):
     if not os.environ.get(var):
-        raise HTTPException(503, f"{var} is not set in voice/.env.")
+        where = "the Vercel project's environment variables" if ON_VERCEL else "the .env file"
+        raise HTTPException(503, f"{var} is not set in {where}.")
 
 
 def doctor_voice():
@@ -128,13 +131,45 @@ def get_trial(trial_id):
     return STORE["trials"][trial_id]
 
 
+class Context(BaseModel):
+    """What the page already holds. On Vercel each request may reach a fresh instance with an empty cache, so the
+    panel sends the trial and the approved script along, and the instance picks up from there."""
+    trial: dict | None = None
+    criteria_summary: dict | None = None
+    script: dict | None = None  # the script the doctor approved, as shown in the panel
+
+
+def register(trial, criteria_summary=None):
+    t = {k: v for k, v in trial.items() if v not in (None, "", [])}
+    if not t.get("nctId"):
+        raise HTTPException(422, "The trial needs an nctId.")
+    if t["nctId"].startswith("NCT"):  # match results omit the full eligibility text; fill it in from the registry
+        try:
+            t = {**fetch_trial(t["nctId"]), **t}
+        except (httpx.HTTPError, HTTPException):
+            pass
+    t["criteria_summary"] = criteria_summary
+    STORE["trials"][t["nctId"]] = t
+    return t
+
+
+def remember(trial_id, ctx):
+    if ctx is None:
+        return
+    if ctx.trial and trial_id not in STORE["trials"]:
+        register(ctx.trial, ctx.criteria_summary)
+    if ctx.script and trial_id not in STORE["approved"]:
+        script = claude_text.PatientScript(**ctx.script).model_dump()
+        STORE["approved"][trial_id] = dict(script, approved_at=ctx.script.get("approved_at", ""))
+
+
 @app.get("/api/config")
 def config():
     return {
         "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "elevenlabs": bool(os.environ.get("ELEVENLABS_API_KEY")),
-        "qa_agent": bool(os.environ.get("QA_AGENT_ID")),
-        "teachback_agent": bool(os.environ.get("TEACHBACK_AGENT_ID")),
+        "qa_agent": bool(agents.agent_id("qa")),
+        "teachback_agent": bool(agents.agent_id("teachback")),
         "languages": LANGS,
     }
 
@@ -155,24 +190,18 @@ class TrialIn(BaseModel):
 
 @app.post("/api/trials")
 def put_trial(body: TrialIn):
-    """Register a trial from the match app, including the team reference trial that isn't on ClinicalTrials.gov."""
-    t = {k: v for k, v in body.trial.items() if v not in (None, "", [])}
-    if not t.get("nctId"):
-        raise HTTPException(422, "The trial needs an nctId.")
-    if t["nctId"].startswith("NCT"):  # match results omit the full eligibility text; fill it in from the registry
-        try:
-            t = {**fetch_trial(t["nctId"]), **t}
-        except (httpx.HTTPError, HTTPException):
-            pass
-    t["criteria_summary"] = body.criteria_summary
-    STORE["trials"][t["nctId"]] = t
+    """Register a trial from the match app, including the team reference trial that isn't on ClinicalTrials.gov.
+    Returns any script already drafted or approved for it."""
+    t = register(body.trial, body.criteria_summary)
     save()
-    return {"trial_id": t["nctId"]}
+    tid = t["nctId"]
+    return {"trial_id": tid, "draft": STORE["draft"].get(tid), "approved": STORE["approved"].get(tid)}
 
 
 @app.post("/api/trials/{trial_id}/script")
-def draft_script(trial_id: str, refresh: bool = False):
+def draft_script(trial_id: str, refresh: bool = False, ctx: Context | None = None):
     """Claude drafts the patient script. The doctor must approve it before anything is played."""
+    remember(trial_id, ctx)
     if refresh or trial_id not in STORE["draft"]:
         need("ANTHROPIC_API_KEY")
         try:
@@ -198,7 +227,7 @@ def approved(trial_id):
     return s
 
 
-class SpeechIn(BaseModel):
+class SpeechIn(Context):
     language: str = "en"
 
 
@@ -206,6 +235,7 @@ class SpeechIn(BaseModel):
 def speech(trial_id: str, body: SpeechIn):
     if body.language not in LANGS:
         raise HTTPException(400, f"Language must be one of {list(LANGS)}.")
+    remember(trial_id, body)
     text = approved(trial_id)[body.language]
     need("ELEVENLABS_API_KEY")
     key = (trial_id, body.language, hashlib.sha256(text.encode()).hexdigest())
@@ -295,12 +325,23 @@ def dynamic_variables(kind, trial_id, language):
             "key_points": "\n".join(f"- {k[language]}" for k in s["key_points"])}
 
 
+class SessionIn(Context):
+    trial_id: str
+    language: str = "en"
+
+
+@app.post("/api/agents/{kind}/session")
+def agent_session_post(kind: str, body: SessionIn):
+    remember(body.trial_id, body)
+    return agent_session(kind, body.trial_id, body.language)
+
+
 @app.get("/api/agents/{kind}/session")
 def agent_session(kind: str, trial_id: str, language: str = "en"):
     """A one-time WebRTC token plus the trial details the agent needs. The API key never reaches the browser."""
     if kind not in agents.AGENTS:
         raise HTTPException(404, "Unknown agent.")
-    agent_id = os.environ.get(agents.AGENTS[kind]["env"])
+    agent_id = agents.agent_id(kind)
     if not agent_id:
         raise HTTPException(503, f"{agents.AGENTS[kind]['env']} is not set. Run `python agents.py` first.")
     if language not in LANGS:
@@ -314,7 +355,7 @@ def agent_session(kind: str, trial_id: str, language: str = "en"):
     return {"token": token["token"], "dynamic_variables": variables, "language": language}
 
 
-class GradeIn(BaseModel):
+class GradeIn(Context):
     conversation_id: str
     trial_id: str
 
@@ -322,6 +363,7 @@ class GradeIn(BaseModel):
 @app.post("/api/teachback/grade")
 def grade(body: GradeIn):
     """Fetch the finished teach-back transcript, then have Claude score each key point."""
+    remember(body.trial_id, body)
     key_points = approved(body.trial_id)["key_points"]
     need("ANTHROPIC_API_KEY")
     try:

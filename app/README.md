@@ -32,3 +32,5 @@ Screening aid only. Final eligibility is determined by the study team. Synthetic
 ## Vercel
 
 The `app` folder deploys to Vercel as is (root directory `app`). `api/index.py` reuses the handler in `app.py`, and `vercel.json` routes `/api/*` to it and `/` to `static/index.html`. On Vercel, the trial list and parsed criteria come from `snapshot/`, a frozen copy taken on 2026-10-08, because the function disk is read-only. Set `ANTHROPIC_API_KEY` as a Vercel environment variable, then redeploy.
+
+The voice service in `voice/` deploys too: `api/voice.py` serves it under `/voice`, which the "Explain to patient" panel calls. Add `ELEVENLABS_API_KEY` to the Vercel environment variables, plus `ANTHROPIC_WORKSPACE_ID` if the Anthropic key is an organization key that isn't scoped to a workspace. Check https://<site>/voice/api/config: every value should be `true`.

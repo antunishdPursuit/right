@@ -59,6 +59,9 @@ document.head.insertAdjacentHTML("beforeend", `<style>
   .vp-pill.understood { background: var(--ok-bg); color: var(--ok-text); }
   .vp-pill.partly { background: var(--warn-bg); color: var(--warn-text); }
   .vp-pill.missed { background: var(--neutral-bg); color: var(--alert); }
+  .vp-meter { display: inline-block; width: 70px; height: 6px; border-radius: 3px; background: var(--divider); overflow: hidden; vertical-align: middle; }
+  .vp-meter span { display: block; height: 100%; width: 0; background: var(--ok); transition: width .1s; }
+  .vp-mic { font-size: 11px; color: var(--muted); }
 </style>`);
 
 const root = document.createElement("aside");
@@ -73,6 +76,7 @@ let recorder = null;   // active MediaRecorder, if any
 let recorded = null;   // the doctor's message to dub (File)
 let session = 0;       // bumps when the panel closes or switches trial, so an abandoned call is never scored
 let starting = false;  // an agent session is connecting
+let agentMode = "listening";  // "speaking" while the agent talks; the silence warning only applies while listening
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function api(path, opts = {}) {
@@ -160,12 +164,14 @@ function render() {
 
       <section class="vp-step ${locked}" data-needs-approval><h3><span class="n">4</span> Patient's questions <small>Voice agent answers only from the trial record</small></h3>
         <div class="bd"><div class="vp-row"><button class="primary" data-agent="qa">Start conversation</button>
-            <button class="tb-btn" data-vp="end" disabled>End</button><span class="vp-msg" id="qaMsg"></span></div>
+            <button class="tb-btn" data-vp="end" disabled>End</button><span class="vp-meter" id="qaMeter" title="Microphone level"><span></span></span><span class="vp-msg" id="qaMsg"></span></div>
+          <div class="vp-mic" id="qaMic"></div>
           <div class="vp-log" id="qaLog"></div></div></section>
 
       <section class="vp-step ${locked}" data-needs-approval><h3><span class="n">5</span> Teach-back check <small>Patient explains it back; Claude scores understanding</small></h3>
         <div class="bd"><div class="vp-row"><button class="primary" data-agent="teachback">Start teach-back</button>
-            <button class="tb-btn" data-vp="end" disabled>End and score</button><span class="vp-msg" id="teachbackMsg"></span></div>
+            <button class="tb-btn" data-vp="end" disabled>End and score</button><span class="vp-meter" id="teachbackMeter" title="Microphone level"><span></span></span><span class="vp-msg" id="teachbackMsg"></span></div>
+          <div class="vp-mic" id="teachbackMic"></div>
           <div class="vp-log" id="teachbackLog"></div><div id="vpGrade"></div></div></section>
     </div>`;
 }
@@ -295,6 +301,29 @@ async function dub(btn) {
 }
 
 /* ---------- Agents: questions and teach-back ---------- */
+// Listen to the mic for a moment before connecting. A blocked or virtual mic delivers exact digital silence, which
+// otherwise looks like a patient who never speaks. Real mics always pick up some room noise.
+async function micCheck() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  const track = stream.getAudioTracks()[0];
+  const ctx = new AudioContext();
+  await ctx.resume();
+  const an = ctx.createAnalyser();
+  an.fftSize = 2048;
+  ctx.createMediaStreamSource(stream).connect(an);
+  const buf = new Float32Array(an.fftSize);
+  let peak = 0;
+  for (const t0 = performance.now(); performance.now() - t0 < 900;) {
+    await sleep(60);
+    an.getFloatTimeDomainData(buf);
+    for (const v of buf) peak = Math.max(peak, Math.abs(v));
+  }
+  const info = { label: track.label || "default microphone", deviceId: track.getSettings().deviceId, peak };
+  stream.getTracks().forEach(t => t.stop());
+  ctx.close();
+  return info;
+}
+
 async function startAgent(kind, btn) {
   if (convo || starting) return;
   starting = true;
@@ -307,13 +336,19 @@ async function startAgent(kind, btn) {
   agentButtons(false);
   msg(kind + "Msg", "Connecting…");
   try {
-    const mic = await navigator.mediaDevices.getUserMedia({ audio: true });  // ask for the mic up front, then release it
-    mic.getTracks().forEach(t => t.stop());
+    msg(kind + "Msg", "Checking the microphone…");
+    const mic = await micCheck();
+    q(`#${kind}Mic`).textContent = `Microphone: ${mic.label}`;
+    if (mic.peak < 1e-5) {
+      throw new Error(`"${mic.label}" is sending silence. On a Mac, check System Settings › Privacy & Security › ` +
+        "Microphone for this browser, and System Settings › Sound › Input for the right device and level. Then try again.");
+    }
     const { Conversation } = await import(SDK);
     const s = await (await api(`/api/agents/${kind}/session?trial_id=${enc(S.id)}&language=${S.lang}`)).json();
     const c = await Conversation.startSession({
       conversationToken: s.token,
       connectionType: "webrtc",
+      inputDeviceId: mic.deviceId,  // the mic that just passed the check
       dynamicVariables: s.dynamic_variables,
       overrides: { agent: { language: s.language } },
       onConnect: ({ conversationId } = {}) => {
@@ -326,19 +361,27 @@ async function startAgent(kind, btn) {
         log.insertAdjacentHTML("beforeend", `<div class="${who}"><span class="who">${who === "user" ? "Patient" : "Assistant"}:</span> ${esc(m.message)}</div>`);
         log.scrollTop = log.scrollHeight;
       },
-      onModeChange: m => { if (mine === session) msg(kind + "Msg", m.mode === "speaking" ? "Assistant speaking…" : "Listening…", "ok"); },
+      onModeChange: m => {
+        if (mine !== session) return;
+        agentMode = m.mode;
+        msg(kind + "Msg", m.mode === "speaking" ? "Assistant speaking…" : "Listening…", "ok");
+      },
       onError: err => { if (mine === session) msg(kind + "Msg", String(err?.message || err), "error"); },
       onDisconnect: () => finished(),
     });
     convoId = c.getId() || convoId;
-    if (mine === session && !done) convo = c;
+    if (mine === session && !done) { convo = c; watchMic(c, kind, mine); }
     else c.endSession().catch(() => {});  // the panel closed while connecting
   } catch (err) {
-    if (mine === session) { msg(kind + "Msg", err.message, "error"); agentButtons(true); }
+    const text = err.name === "NotAllowedError"
+      ? "The browser blocked the microphone. Allow it for this page (the icon at the left of the address bar). The Claude app's built-in browser can't use microphones, so open http://localhost:8000 in Chrome."
+      : err.name === "NotFoundError" ? "No microphone found. Plug one in or pick an input in System Settings › Sound." : err.message;
+    if (mine === session) { msg(kind + "Msg", text, "error"); agentButtons(true); }
   }
   starting = false;
 
   async function finished() {
+    q(`#${kind}Meter span`)?.style.setProperty("width", "0");
     if (done) return;
     done = true;
     if (mine !== session || S?.id !== trialId) return;  // closed or switched trial: don't score an abandoned call
@@ -356,6 +399,21 @@ async function startAgent(kind, btn) {
       msg(kind + "Msg", "Scored.", "ok");
     } catch (err) { if (mine === session) msg(kind + "Msg", err.message, "error"); }
   }
+}
+
+function watchMic(c, kind, mine) {
+  let quietSince = Date.now();
+  const timer = setInterval(() => {
+    if (mine !== session || convo !== c) return clearInterval(timer);
+    const v = c.getInputVolume?.() ?? 0;
+    const bar = q(`#${kind}Meter span`);
+    if (bar) bar.style.width = Math.min(100, Math.round(v * 300)) + "%";
+    if (v > 0.01) quietSince = Date.now();
+    else if (Date.now() - quietSince > 8000 && agentMode !== "speaking") {
+      msg(kind + "Msg", "No sound from the microphone. Check that it's unmuted and the right input is selected.", "error");
+      quietSince = Date.now();
+    }
+  }, 100);
 }
 
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !root.hidden && !convo) close(); });

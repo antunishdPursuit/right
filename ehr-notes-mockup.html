@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EHR Notes Mockup</title>
+<style>
+  :root {
+    --chrome: #2b5f8a;
+    --chrome-dark: #1d4566;
+    --chrome-light: #d9e6f2;
+    --tab-active: #ffffff;
+    --bg: #eef1f4;
+    --panel: #ffffff;
+    --border: #c3ccd5;
+    --text: #1f2a35;
+    --muted: #5b6875;
+    --accent: #0a6ebd;
+    --warn-bg: #fff4d6;
+    --warn-border: #e2b740;
+    --alert: #b3261e;
+    --ok: #2e7d32;
+    --storyboard: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 13px/1.4 "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Top application chrome ---------- */
+  .appbar {
+    background: linear-gradient(#3a76a8, var(--chrome));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--chrome-dark);
+  }
+  .appbar .logo { font-weight: 700; letter-spacing: .5px; padding-right: 12px; border-right: 1px solid rgba(255,255,255,.3); }
+  .appbar button {
+    background: none; border: 0; color: #fff; font: inherit; cursor: pointer;
+    padding: 3px 6px; border-radius: 3px;
+  }
+  .appbar button:hover { background: rgba(255,255,255,.15); }
+  .appbar .spacer { flex: 1; }
+  .appbar .user { opacity: .9; }
+
+  .patient-tabs {
+    background: var(--chrome-dark);
+    display: flex;
+    gap: 2px;
+    padding: 4px 8px 0;
+  }
+  .patient-tabs .ptab {
+    background: #8fb0cc; color: var(--text);
+    padding: 4px 14px; border-radius: 4px 4px 0 0; font-size: 12px;
+  }
+  .patient-tabs .ptab.active { background: var(--bg); font-weight: 600; }
+  .patient-tabs .ptab .x { margin-left: 8px; color: var(--muted); }
+
+  /* ---------- Main layout ---------- */
+  .workspace { flex: 1; display: flex; min-height: 0; }
+
+  /* Storyboard (left patient summary) */
+  .storyboard {
+    width: 220px; flex-shrink: 0;
+    background: var(--storyboard);
+    border-right: 1px solid var(--border);
+    padding: 10px;
+    overflow-y: auto;
+  }
+  .avatar {
+    width: 64px; height: 64px; border-radius: 4px;
+    background: #b9c7d4; color: #fff; font-size: 26px; font-weight: 600;
+    display: grid; place-items: center; margin-bottom: 8px;
+  }
+  .pt-name { font-size: 16px; font-weight: 700; }
+  .pt-meta { color: var(--muted); margin-bottom: 10px; }
+  .sb-section { border-top: 1px solid var(--border); padding: 8px 0; }
+  .sb-label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 2px; }
+  .allergy { color: var(--alert); font-weight: 600; }
+  .flag {
+    display: inline-block; background: var(--warn-bg); border: 1px solid var(--warn-border);
+    padding: 1px 6px; border-radius: 3px; font-size: 11px; margin: 2px 2px 0 0;
+  }
+  .vitals { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+  .vitals span:nth-child(odd) { color: var(--muted); }
+
+  /* Activity tabs (vertical) */
+  .activities {
+    width: 120px; flex-shrink: 0;
+    background: #e3e9ef; border-right: 1px solid var(--border);
+    padding-top: 6px;
+  }
+  .activities button {
+    display: block; width: 100%; text-align: left;
+    background: none; border: 0; border-left: 3px solid transparent;
+    padding: 7px 10px; font: inherit; color: var(--text); cursor: pointer;
+  }
+  .activities button:hover { background: #d4dde6; }
+  .activities button.active { background: var(--panel); border-left-color: var(--accent); font-weight: 600; }
+
+  /* Notes activity */
+  .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .activity-header {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 8px 14px; display: flex; align-items: center; gap: 12px;
+  }
+  .activity-header h1 { font-size: 16px; margin: 0; }
+  .encounter { color: var(--muted); }
+
+  .notes-split { flex: 1; display: flex; min-height: 0; }
+  .note-list {
+    width: 270px; flex-shrink: 0;
+    background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .note-list .filters { padding: 8px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; }
+  .note-list .filters select, .note-list .filters input {
+    font: inherit; padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; flex: 1; min-width: 0;
+  }
+  .note-items { overflow-y: auto; flex: 1; }
+  .note-item {
+    padding: 8px 10px; border-bottom: 1px solid #e6eaee; cursor: pointer;
+  }
+  .note-item:hover { background: #f2f6fa; }
+  .note-item.active { background: var(--chrome-light); }
+  .note-item .t { font-weight: 600; }
+  .note-item .m { color: var(--muted); font-size: 12px; }
+  .status { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 3px; }
+  .status.incomplete { background: var(--warn-bg); color: #7a5a00; }
+  .status.signed { background: #e3f1e4; color: var(--ok); }
+
+  /* Note editor */
+  .editor { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  .editor-toolbar {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 6px 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  }
+  .tb-btn {
+    font: inherit; background: #f4f6f8; border: 1px solid var(--border); border-radius: 3px;
+    padding: 3px 9px; cursor: pointer; color: var(--text);
+  }
+  .tb-btn:hover { background: #e7edf2; }
+  .tb-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+  .editor-meta {
+    padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 4px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border); color: var(--muted);
+  }
+  .editor-meta b { color: var(--text); font-weight: 600; }
+  .policy-banner {
+    margin: 10px 14px 0; padding: 6px 10px;
+    background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 3px;
+  }
+  .note-body { flex: 1; overflow-y: auto; padding: 10px 14px 20px; }
+  .soap {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .soap h2 {
+    margin: 0; font-size: 13px; padding: 5px 10px;
+    background: #edf2f7; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+  }
+  .soap h2 small { font-weight: 400; color: var(--muted); }
+  .soap .text {
+    padding: 8px 10px; min-height: 48px; outline: none; white-space: pre-wrap;
+  }
+  .soap .text:focus { box-shadow: inset 0 0 0 2px #9cc7ea; }
+  .smartlink { color: var(--accent); background: #e8f2fb; border-radius: 2px; padding: 0 2px; }
+  .blank { background: #fff2b3; border-bottom: 1px dashed #c49a00; padding: 0 3px; }
+
+  .editor-footer {
+    background: var(--panel); border-top: 1px solid var(--border);
+    padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .editor-footer .spacer { flex: 1; }
+  .primary {
+    font: inherit; font-weight: 600; background: var(--ok); color: #fff;
+    border: 1px solid #1f5e23; border-radius: 3px; padding: 5px 16px; cursor: pointer;
+  }
+  .primary:disabled { opacity: .5; cursor: default; }
+  .saved { color: var(--muted); font-size: 12px; }
+
+  .disclaimer {
+    text-align: center; font-size: 11px; color: var(--muted);
+    background: #fafbfc; border-top: 1px solid var(--border); padding: 3px;
+  }
+
+  @media (max-width: 900px) {
+    .storyboard, .activities { display: none; }
+    .note-list { width: 200px; }
+  }
+  @media (max-width: 600px) {
+    .notes-split { flex-direction: column; }
+    .note-list { width: 100%; max-height: 180px; border-right: 0; border-bottom: 1px solid var(--border); }
+    .appbar button:not(:first-of-type) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <span class="logo">ClinicView EHR</span>
+  <button>Schedule</button>
+  <button>In Basket</button>
+  <button>Patient Lookup</button>
+  <button>Chart</button>
+  <span class="spacer"></span>
+  <span class="user">Dr. R. Rivera, PsyD · Behavioral Health</span>
+</header>
+
+<nav class="patient-tabs">
+  <span class="ptab">Dept Schedule</span>
+  <span class="ptab active">Sample, Alex <span class="x">×</span></span>
+</nav>
+
+<div class="workspace">
+
+  <!-- Storyboard -->
+  <aside class="storyboard">
+    <div class="avatar">AS</div>
+    <div class="pt-name">Sample, Alex</div>
+    <div class="pt-meta">34 y.o. · They/Them<br>DOB 01/01/1992<br>MRN SYN-000123</div>
+
+    <div class="sb-section">
+      <div class="sb-label">Allergies</div>
+      <div class="allergy">Penicillin (rash)</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Flags</div>
+      <span class="flag">Synthetic record</span>
+      <span class="flag">Interpreter: No</span>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Care Team</div>
+      <div>PCP: Dr. M. Chen</div>
+      <div>BH: Dr. R. Rivera</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Today's Vitals</div>
+      <div class="vitals">
+        <span>BP</span><span>118/76</span>
+        <span>HR</span><span>72</span>
+        <span>Wt</span><span>68 kg</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Screeners</div>
+      <div class="vitals">
+        <span>PHQ-9</span><span>11 (prev 14)</span>
+        <span>GAD-7</span><span>9 (prev 12)</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Encounter</div>
+      <div>Office Visit · 10/08/2026</div>
+      <div>Follow-up, 50 min</div>
+    </div>
+  </aside>
+
+  <!-- Activity tabs -->
+  <nav class="activities">
+    <button>SnapShot</button>
+    <button>Chart Review</button>
+    <button>Results</button>
+    <button>Synopsis</button>
+    <button>Problem List</button>
+    <button>Medications</button>
+    <button class="active">Notes</button>
+    <button>Orders</button>
+    <button>Wrap-Up</button>
+  </nav>
+
+  <!-- Notes activity -->
+  <main class="content">
+    <div class="activity-header">
+      <h1>Notes</h1>
+      <span class="encounter">Office Visit — 10/08/2026 — Behavioral Health Clinic</span>
+    </div>
+
+    <div class="notes-split">
+      <section class="note-list">
+        <div class="filters">
+          <select aria-label="Note type filter">
+            <option>All note types</option>
+            <option>Progress Notes</option>
+            <option>H&amp;P</option>
+            <option>Telephone</option>
+          </select>
+          <input placeholder="Search" aria-label="Search notes">
+        </div>
+        <div class="note-items" id="noteItems"></div>
+      </section>
+
+      <section class="editor">
+        <div class="editor-toolbar">
+          <button class="tb-btn"><b>B</b></button>
+          <button class="tb-btn"><i>I</i></button>
+          <button class="tb-btn"><u>U</u></button>
+          <span class="tb-sep"></span>
+          <button class="tb-btn">.SmartPhrase</button>
+          <button class="tb-btn">Insert SmartText</button>
+          <button class="tb-btn">Refresh</button>
+          <span class="tb-sep"></span>
+          <button class="tb-btn" id="nextBlank">Next *** (F2)</button>
+        </div>
+
+        <div class="editor-meta" id="noteMeta"></div>
+        <div class="policy-banner" id="policyBanner">
+          ⚠ Note policy: diagnosis is <b>not</b> entered in this note. Assessment holds clinician-approved observations only.
+        </div>
+
+        <div class="note-body" id="noteBody"></div>
+
+        <div class="editor-footer">
+          <span class="saved" id="savedState">Draft — not signed</span>
+          <span class="spacer"></span>
+          <button class="tb-btn">Pend</button>
+          <button class="tb-btn">Share w/ Patient</button>
+          <button class="primary" id="signBtn">Sign</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="disclaimer">Prototype mockup with synthetic data only. Not connected to any EHR.</div>
+
+<script>
+const notes = [
+  {
+    id: 1,
+    title: "Progress Note",
+    author: "Rivera, R., PsyD",
+    date: "10/08/2026 2:10 PM",
+    status: "incomplete",
+    type: "Behavioral Health Follow-up",
+    soap: {
+      S: "Patient reports sleep has improved to about 6–7 hours most nights since last visit. States work stress \"is still there but more manageable.\" Has been using the breathing exercise ~4x/week. Reports one difficult weekend after a family conflict; coped by calling a friend. Denies thoughts of self-harm.",
+      O: "Alert, oriented, cooperative. Speech normal rate and volume. Affect mildly constricted, brightened when discussing hobbies. Thought process linear. PHQ-9: 11 (previous 14). GAD-7: 9 (previous 12).",
+      A: "Patient shows improvement in sleep and self-reported coping since last session, with reduced screener scores. Continues to report work-related stress. Engaged and motivated in treatment. <span class=\"blank\">***</span>",
+      P: "1. Continue weekly sessions; next visit 10/15/2026.\n2. Practice breathing exercise daily; add brief evening wind-down routine.\n3. Patient to log stress triggers this week for review.\n4. Safety plan reviewed and current; crisis line information re-provided.\n5. <span class=\"blank\">***</span>"
+    }
+  },
+  {
+    id: 2,
+    title: "Progress Note",
+    author: "Rivera, R., PsyD",
+    date: "10/01/2026 2:05 PM",
+    status: "signed",
+    type: "Behavioral Health Follow-up",
+    soap: {
+      S: "Patient reports trouble falling asleep, averaging 4–5 hours per night. Describes increased workload and tension with manager. Interested in learning coping skills.",
+      O: "Alert, oriented. Appeared tired. Affect anxious. PHQ-9: 14. GAD-7: 12.",
+      A: "Patient reports sleep disruption and elevated stress related to work. Receptive to skills-based approach.",
+      P: "1. Introduced paced breathing exercise.\n2. Sleep hygiene handout given.\n3. Follow up in 1 week."
+    }
+  },
+  {
+    id: 3,
+    title: "Telephone Encounter",
+    author: "Nguyen, T., RN",
+    date: "09/26/2026 10:42 AM",
+    status: "signed",
+    type: "Telephone",
+    soap: {
+      S: "Patient called to reschedule appointment from 09/29 to 10/01.",
+      O: "N/A",
+      A: "Scheduling request only.",
+      P: "Appointment moved to 10/01/2026 2:00 PM. Patient confirmed."
+    }
+  }
+];
+
+const labels = { S: "Subjective", O: "Objective", A: "Assessment", P: "Plan" };
+const hints  = { S: "patient's own report", O: "observed / measured", A: "clinician observations — no diagnosis", P: "next steps" };
+let current = notes[0];
+
+function renderList() {
+  document.getElementById("noteItems").innerHTML = notes.map(n => `
+    <div class="note-item ${n.id === current.id ? "active" : ""}" data-id="${n.id}">
+      <div class="t">${n.title} <span class="status ${n.status}">${n.status === "signed" ? "Signed" : "Incomplete"}</span></div>
+      <div class="m">${n.author}</div>
+      <div class="m">${n.date}</div>
+    </div>`).join("");
+}
+
+function renderNote() {
+  const n = current;
+  document.getElementById("noteMeta").innerHTML = `
+    <span>Type: <b>${n.type}</b></span>
+    <span>Author: <b>${n.author}</b></span>
+    <span>Date of Service: <b>${n.date}</b></span>
+    <span>Status: <b>${n.status === "signed" ? "Signed" : "Incomplete"}</b></span>`;
+  const editable = n.status !== "signed";
+  document.getElementById("noteBody").innerHTML = Object.keys(labels).map(k => `
+    <div class="soap">
+      <h2>${labels[k]} <small>${hints[k]}</small></h2>
+      <div class="text" data-key="${k}" contenteditable="${editable}">${n.soap[k]}</div>
+    </div>`).join("");
+  const signBtn = document.getElementById("signBtn");
+  signBtn.disabled = !editable;
+  signBtn.textContent = editable ? "Sign" : "Signed";
+  document.getElementById("savedState").textContent =
+    editable ? "Draft — not signed" : `Signed by ${n.author}`;
+}
+
+document.getElementById("noteItems").addEventListener("click", e => {
+  const item = e.target.closest(".note-item");
+  if (!item) return;
+  saveEdits();
+  current = notes.find(n => n.id === Number(item.dataset.id));
+  renderList();
+  renderNote();
+});
+
+function saveEdits() {
+  document.querySelectorAll(".soap .text[contenteditable=true]").forEach(el => {
+    current.soap[el.dataset.key] = el.innerHTML;
+  });
+}
+
+document.getElementById("noteBody").addEventListener("input", () => {
+  document.getElementById("savedState").textContent = "Draft — unsaved changes";
+});
+
+document.getElementById("nextBlank").addEventListener("click", () => {
+  const blank = document.querySelector(".note-body .blank");
+  if (!blank) return;
+  blank.scrollIntoView({ block: "center" });
+  const range = document.createRange();
+  range.selectNodeContents(blank);
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+});
+
+document.getElementById("signBtn").addEventListener("click", () => {
+  saveEdits();
+  if (document.querySelector(".note-body .blank")) {
+    alert("Cannot sign: note still contains *** blanks. Press F2 / \"Next ***\" to complete them.");
+    return;
+  }
+  current.status = "signed";
+  renderList();
+  renderNote();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "F2") { e.preventDefault(); document.getElementById("nextBlank").click(); }
+});
+
+renderList();
+renderNote();
+</script>
+</body>
+</html>

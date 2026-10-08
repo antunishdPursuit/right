@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>right</title>
+<style>
+  :root {
+    --bar: #2b5f8a; --bar2: #3a76a8; --accent: #e5702a; --blue: #0f6cbd; --blue-d: #0b4f8a;
+    --story: #1d4566; --story2: #163a57; --bg: #eef1f4; --panel: #fff; --line: #c9d3dd; --row: #f4f7fa;
+    --text: #1d2733; --muted: #5d6b79; --ok: #2e7d32; --okbg: #e3f3e4; --warn: #9a6200; --warnbg: #fff4d6;
+    --bad: #b3261e; --badbg: #fde7e5; --sel: #dbeaf9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 12px/1.4 "Segoe UI", Tahoma, Arial, sans-serif; }
+  button { font: inherit; cursor: pointer; }
+  /* top system bar */
+  .sysbar { display: flex; align-items: center; gap: 2px; background: linear-gradient(#3a76a8, var(--bar)); color: #fff; height: 34px; padding: 0 6px; }
+  .appbtn { background: var(--accent); color: #fff; border: 0; font-weight: 700; padding: 5px 12px; border-radius: 3px; margin-right: 10px; }
+  .tool { background: transparent; color: #dbe6f0; border: 0; padding: 6px 10px; border-radius: 3px; }
+  .tool:hover { background: var(--bar2); color: #fff; }
+  .sysbar .right { margin-left: auto; color: #b8c7d6; font-size: 11px; }
+  /* workspace tabs */
+  .wstabs { display: flex; background: #d5dee7; border-bottom: 1px solid var(--line); padding: 4px 6px 0; gap: 3px; }
+  .wstab { background: #c3cfdb; border: 1px solid #aebccb; border-bottom: 0; padding: 5px 14px; border-radius: 4px 4px 0 0; color: #33475b; }
+  .wstab.on { background: #fff; color: var(--blue-d); font-weight: 600; position: relative; top: 1px; }
+  .wstab:disabled { opacity: .5; cursor: default; }
+  .layout { display: flex; height: calc(100vh - 89px); }
+  .footer { height: 24px; line-height: 24px; text-align: center; background: var(--warnbg); border-top: 1px solid #e2b740; color: #6b4e00; font-size: 11px; }
+  /* storyboard */
+  .story { width: 250px; flex: none; background: linear-gradient(var(--story), var(--story2)); color: #e8f0f7; padding: 10px; overflow: auto; }
+  .story h2 { font-size: 15px; margin: 0 0 2px; color: #fff; line-height: 1.25; }
+  .story .sub { color: #a9c2d8; font-size: 11px; margin-bottom: 10px; }
+  .story .grp { border-top: 1px solid rgba(255,255,255,.15); padding: 7px 0; }
+  .story .lbl { color: #9fb9d0; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+  .story .val { font-weight: 600; }
+  .counts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+  .count { background: rgba(255,255,255,.08); border-radius: 3px; padding: 5px 7px; }
+  .count b { display: block; font-size: 18px; color: #fff; }
+  /* main activity area */
+  main { flex: 1; overflow: auto; padding: 10px 12px; min-width: 0; }
+  .act { display: none; } .act.on { display: block; }
+  .section { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; margin-bottom: 10px; }
+  .sh { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 2px solid var(--blue); color: var(--blue-d); font-weight: 700; font-size: 13px; }
+  .sh .sp { margin-left: auto; font-weight: 400; }
+  .sb { padding: 8px 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; background: #eef3f8; color: #3c5166; font-weight: 600; padding: 5px 7px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; }
+  td { padding: 5px 7px; border-bottom: 1px solid #e3e9ef; vertical-align: top; }
+  tbody tr:nth-child(even) td { background: var(--row); }
+  tr.click { cursor: pointer; } tr.click:hover td { background: #e8f1fb; }
+  tr.sel td { background: var(--sel) !important; }
+  .btn { background: linear-gradient(#fdfdfd, #e6ecf2); border: 1px solid #9fb0c2; border-radius: 3px; padding: 4px 12px; color: #1f3346; }
+  .btn:hover { border-color: var(--blue); }
+  .btn.primary { background: linear-gradient(#2f86d6, var(--blue)); border-color: var(--blue-d); color: #fff; font-weight: 600; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  input[type=search] { border: 1px solid #9fb0c2; border-radius: 3px; padding: 4px 7px; width: 280px; font: inherit; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .ELIGIBLE { background: var(--okbg); color: var(--ok); } .VERIFY { background: var(--warnbg); color: var(--warn); }
+  .EXCLUDED { background: var(--badbg); color: var(--bad); } .PENDING { background: #e8ecf0; color: var(--muted); }
+  .MET { color: var(--ok); font-weight: 700; } .NOT_MET { color: var(--bad); font-weight: 700; } .UNKNOWN { color: var(--warn); font-weight: 700; }
+  .muted { color: var(--muted); }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  #pts td:nth-child(2) { white-space: nowrap; }
+  .crit { white-space: pre-wrap; max-height: 260px; overflow: auto; background: #fafbfc; border: 1px solid #e3e9ef; padding: 8px; font-size: 11.5px; }
+  .filters { display: flex; gap: 4px; }
+  .filters .btn.on { background: var(--sel); border-color: var(--blue); font-weight: 600; }
+  .progress { height: 4px; background: #dde5ec; } .progress div { height: 100%; background: var(--blue); width: 0; transition: width .3s; }
+  .split { display: flex; gap: 10px; align-items: flex-start; }
+  .split > .section:first-child { flex: 1; min-width: 0; }
+  .detail { width: 360px; flex: none; position: sticky; top: 0; }
+  .banner { background: #f2f6fa; border-bottom: 1px solid var(--line); padding: 8px 10px; }
+  .banner .nm { font-size: 15px; font-weight: 700; color: var(--blue-d); }
+  .kv { display: grid; grid-template-columns: 90px 1fr; gap: 3px 8px; }
+  .kv dt { color: var(--muted); } .kv dd { margin: 0; }
+  ul.tight { margin: 4px 0; padding-left: 18px; }
+  .err { background: var(--badbg); color: var(--bad); padding: 6px 10px; border: 1px solid #f1b8b3; border-radius: 3px; margin-bottom: 8px; display: none; }
+  .spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid #b7c6d4; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 1100px) { .story { display: none; } .split { flex-direction: column; } .detail { width: 100%; position: static; } }
+  @media print { .sysbar, .wstabs, .story, .noprint { display: none !important; } .layout { height: auto; } .act { display: none !important; } #act-enroll { display: block !important; } }
+</style>
+</head>
+<body>
+<div class="sysbar">
+  <button class="appbtn">right</button>
+  <button class="tool" onclick="go('search')">Trial Search</button>
+  <button class="tool" onclick="go('criteria')">Criteria</button>
+  <button class="tool" onclick="go('screen')">Screening</button>
+  <button class="tool" onclick="go('enroll')">Enrollment List</button>
+  <button class="tool" onclick="window.print()">Print</button>
+  <span class="right">Synthetic data only &middot; Model: claude-opus-5-5 &middot; <span id="clock"></span></span>
+</div>
+<div class="wstabs">
+  <button class="wstab on" data-t="search" onclick="go('search')">1 &middot; Trial Search</button>
+  <button class="wstab" data-t="criteria" onclick="go('criteria')" disabled>2 &middot; Criteria Review</button>
+  <button class="wstab" data-t="screen" onclick="go('screen')" disabled>3 &middot; Screening Results</button>
+  <button class="wstab" data-t="enroll" onclick="go('enroll')" disabled>4 &middot; Enrollment List</button>
+</div>
+<div class="layout">
+  <aside class="story" id="story">
+    <h2>No trial selected</h2>
+    <div class="sub">Select a recruiting trial in Trial Search.</div>
+  </aside>
+  <main>
+    <div class="err" id="err"></div>
+
+    <section class="act on" id="act-search">
+      <div class="section">
+        <div class="sh">Recruiting Anxiety Trials &middot; ClinicalTrials.gov
+          <span class="sp"><input type="search" id="q" placeholder="Filter: keyword or NCT ID" onkeydown="if(event.key==='Enter')loadTrials()">
+          <button class="btn" onclick="loadTrials()">Search</button></span></div>
+        <div style="max-height:42vh;overflow:auto">
+          <table><thead><tr><th>NCT ID</th><th>Title</th><th>Phase</th><th>Ages</th><th>Enroll</th><th>Sponsor</th></tr></thead>
+          <tbody id="trials"><tr><td colspan="6"><span class="spinner"></span> Loading trials&hellip;</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="section" id="preview" style="display:none">
+        <div class="sh"><span id="pvTitle"></span><span class="sp"><button class="btn primary" id="sumBtn" onclick="summarize()">Summarize Criteria</button></span></div>
+        <div class="sb"><div class="crit" id="pvCrit"></div></div>
+      </div>
+    </section>
+
+    <section class="act" id="act-criteria">
+      <div class="section">
+        <div class="sh">Eligibility Summary<span class="sp"><button class="btn primary" id="screenBtn" onclick="screenAll()">Screen <span id="nPat"></span> Patients</button></span></div>
+        <div class="sb" id="overview"></div>
+      </div>
+      <div class="section"><div class="sh">Inclusion Criteria</div>
+        <table><thead><tr><th style="width:50px">ID</th><th>Criterion</th><th>What to check</th></tr></thead><tbody id="inc"></tbody></table></div>
+      <div class="section"><div class="sh">Exclusion Criteria</div>
+        <table><thead><tr><th style="width:50px">ID</th><th>Criterion</th><th>What to check</th></tr></thead><tbody id="exc"></tbody></table></div>
+      <div class="section"><div class="sh">Needs Manual Screening</div><div class="sb"><ul class="tight" id="notes"></ul></div></div>
+    </section>
+
+    <section class="act" id="act-screen">
+      <div class="split">
+        <div class="section">
+          <div class="sh">Patient Screening <span class="muted" id="progTxt" style="font-weight:400"></span>
+            <span class="sp filters" id="filters">
+              <button class="btn on" data-f="ALL">All</button><button class="btn" data-f="ELIGIBLE">Eligible</button>
+              <button class="btn" data-f="VERIFY">Verify</button><button class="btn" data-f="EXCLUDED">Excluded</button>
+            </span></div>
+          <div class="progress"><div id="prog"></div></div>
+          <table><thead><tr><th class="noprint"></th><th>ID</th><th>Patient</th><th>Age/Sex</th><th>GAD-7</th><th>PHQ-9</th><th>Status</th><th>Score</th><th>Reason</th></tr></thead>
+          <tbody id="pts"></tbody></table>
+        </div>
+        <div class="section detail" id="detail"><div class="sb muted">Select a patient to see the criterion-by-criterion review.</div></div>
+      </div>
+    </section>
+
+    <section class="act" id="act-enroll">
+      <div class="section">
+        <div class="sh">Final Enrollment List<span class="sp noprint"><button class="btn" onclick="window.print()">Print</button> <button class="btn primary" onclick="exportCsv()">Export CSV</button></span></div>
+        <div class="sb" id="enrollHead"></div>
+        <table><thead><tr><th>ID</th><th>Patient</th><th>Age/Sex</th><th>GAD-7 / PHQ-9</th><th>Status</th><th>Summary</th><th>Open checks before consent</th></tr></thead><tbody id="enroll"></tbody></table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="footer noprint">Screening aid only. Final eligibility is determined by the study team. Synthetic patients, no PHI.</div>
+<script>
+const S = { trials: [], trial: null, summary: null, patients: [], results: {}, picked: new Set(), filter: 'ALL', open: null };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ORDER = { ELIGIBLE: 0, VERIFY: 1, EXCLUDED: 2, PENDING: 3 };
+
+function err(msg) { $('err').textContent = msg; $('err').style.display = msg ? 'block' : 'none'; }
+async function api(url, body) {
+  const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (!r.ok || j.error) throw new Error(j.error || r.statusText);
+  return j;
+}
+function go(t) {
+  const tab = document.querySelector(`.wstab[data-t=${t}]`);
+  if (tab.disabled) return;
+  document.querySelectorAll('.wstab').forEach(b => b.classList.toggle('on', b === tab));
+  document.querySelectorAll('.act').forEach(a => a.classList.toggle('on', a.id === 'act-' + t));
+  if (t === 'enroll') renderEnroll();
+}
+function enable(t) { document.querySelector(`.wstab[data-t=${t}]`).disabled = false; }
+
+async function loadTrials() {
+  err(''); $('trials').innerHTML = '<tr><td colspan="6"><span class="spinner"></span> Loading trials&hellip;</td></tr>';
+  try { S.trials = await api('/api/trials?q=' + encodeURIComponent($('q').value)); }
+  catch (e) { err('Trial search failed: ' + e.message); S.trials = []; }
+  $('trials').innerHTML = S.trials.map((t, i) => `<tr class="click${S.trial?.nctId === t.nctId ? ' sel' : ''}" onclick="pickTrial(${i})">
+    <td><b>${esc(t.nctId)}</b></td><td>${esc(t.title)}</td><td>${esc(t.phase)}</td>
+    <td>${esc(t.minAge || '-')} &ndash; ${esc(t.maxAge || 'none')}</td><td>${esc(t.enrollment ?? '-')}</td><td>${esc(t.sponsor)}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="muted">No recruiting trials match.</td></tr>';
+}
+function pickTrial(i) {
+  S.trial = S.trials[i]; S.summary = null; S.results = {}; S.picked.clear();
+  ['criteria', 'screen', 'enroll'].forEach(t => document.querySelector(`.wstab[data-t=${t}]`).disabled = true);
+  document.querySelectorAll('#trials tr').forEach((r, j) => r.classList.toggle('sel', j === i));
+  $('preview').style.display = 'block';
+  $('pvTitle').textContent = S.trial.nctId + ' · Eligibility criteria (source text)';
+  $('pvCrit').textContent = S.trial.criteria || 'No eligibility text published.';
+  renderStory();
+}
+function renderStory() {
+  const t = S.trial; if (!t) return;
+  const res = Object.values(S.results);
+  const n = s => res.filter(r => r.status === s).length;
+  $('story').innerHTML = `<h2>${esc(t.title)}</h2><div class="sub">${esc(t.nctId)} &middot; Recruiting</div>
+    <div class="grp"><div class="lbl">Phase</div><div class="val">${esc(t.phase)}</div></div>
+    <div class="grp"><div class="lbl">Sponsor</div><div class="val">${esc(t.sponsor)}</div></div>
+    <div class="grp"><div class="lbl">Conditions</div><div class="val">${esc((t.conditions || []).join(', '))}</div></div>
+    <div class="grp"><div class="lbl">Ages / Sex</div><div class="val">${esc(t.minAge || '-')} to ${esc(t.maxAge || 'none')} &middot; ${esc(t.sex)}</div></div>
+    ${S.summary ? `<div class="grp"><div class="lbl">Criteria</div><div class="val">${S.summary.inclusion.length} inclusion &middot; ${S.summary.exclusion.length} exclusion</div></div>` : ''}
+    ${res.length ? `<div class="grp"><div class="lbl">Screening (${res.length}/${S.patients.length})</div><div class="counts">
+      <div class="count"><b>${n('ELIGIBLE')}</b>Eligible</div><div class="count"><b>${n('VERIFY')}</b>Verify</div>
+      <div class="count"><b>${n('EXCLUDED')}</b>Excluded</div><div class="count"><b>${S.picked.size}</b>Selected</div></div></div>` : ''}`;
+}
+
+async function summarize() {
+  err(''); const b = $('sumBtn'); b.disabled = true; b.innerHTML = '<span class="spinner"></span> Summarizing&hellip;';
+  try {
+    S.summary = await api('/api/summarize', { trial: S.trial });
+    renderCriteria(); enable('criteria'); go('criteria'); renderStory();
+  } catch (e) { err('Summary failed: ' + e.message); }
+  b.disabled = false; b.textContent = 'Summarize Criteria';
+}
+function renderCriteria() {
+  const s = S.summary;
+  $('overview').innerHTML = esc(s.overview);
+  const row = c => `<tr><td><b>${esc(c.id)}</b></td><td>${esc(c.criterion)}</td><td class="muted">${esc(c.plain)}</td></tr>`;
+  $('inc').innerHTML = s.inclusion.map(row).join('');
+  $('exc').innerHTML = s.exclusion.map(row).join('');
+  $('notes').innerHTML = s.screening_notes.map(n => `<li>${esc(n)}</li>`).join('') || '<li class="muted">None</li>';
+  $('nPat').textContent = S.patients.length;
+}
+
+async function screenAll() {
+  err(''); S.results = {}; S.picked.clear(); S.open = null;
+  enable('screen'); go('screen'); $('screenBtn').disabled = true;
+  renderPatients();
+  const queue = [...S.patients]; let done = 0;
+  const worker = async () => {
+    while (queue.length) {
+      const p = queue.shift();
+      try {
+        const r = await api('/api/screen', { summary: S.summary, patientId: p.id });
+        S.results[p.id] = r;
+        if (r.status !== 'EXCLUDED') S.picked.add(p.id);  // physician unticks; VERIFY = chart silent, confirm with patient
+      } catch (e) { S.results[p.id] = { status: 'VERIFY', match_score: 0, summary: 'Screening call failed: ' + e.message, criteria: [], open_checks: ['Re-run screening'] }; }
+      done++; $('prog').style.width = (100 * done / S.patients.length) + '%';
+      $('progTxt').textContent = done < S.patients.length ? `screening ${done}/${S.patients.length}` : `${done} screened`;
+      renderPatients(); renderStory();
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  $('screenBtn').disabled = false; enable('enroll');
+}
+function failed(r) {
+  return (r.criteria || []).filter(c => (c.id.startsWith('E') ? c.result === 'MET' : c.result === 'NOT_MET')).map(c => c.id);
+}
+function renderPatients() {
+  const rows = S.patients.map(p => ({ p, r: S.results[p.id] || { status: 'PENDING' } }))
+    .filter(x => S.filter === 'ALL' || x.r.status === S.filter)
+    .sort((a, b) => ORDER[a.r.status] - ORDER[b.r.status] || (b.r.match_score || 0) - (a.r.match_score || 0));
+  $('pts').innerHTML = rows.map(({ p, r }) => {
+    const pending = r.status === 'PENDING';
+    const reason = pending ? '<span class="spinner"></span>' : r.status === 'EXCLUDED' ? `<b class="NOT_MET">${esc(failed(r).join(', ') || 'Excluded')}</b> ${esc(r.summary)}` : esc(r.summary);
+    return `<tr class="click${S.open === p.id ? ' sel' : ''}" onclick="openPt('${p.id}')">
+      <td class="noprint" onclick="event.stopPropagation()"><input type="checkbox" ${S.picked.has(p.id) ? 'checked' : ''} ${pending ? 'disabled' : ''} onchange="toggle('${p.id}', this.checked)" aria-label="Select ${esc(p.name)}"></td>
+      <td>${esc(p.id)}</td><td><b>${esc(p.name)}</b></td><td>${p.age ?? ''} ${esc(p.sex)}</td><td>${p.gad7 ?? ''}</td><td>${p.phq9 ?? ''}</td>
+      <td><span class="pill ${r.status}">${r.status === 'VERIFY' ? 'ELIGIBLE - VERIFY' : r.status}</span></td>
+      <td>${pending ? '' : r.match_score}</td><td><div class="clamp">${reason}</div></td></tr>`;
+  }).join('');
+  if (S.open) openPt(S.open);
+}
+function toggle(id, on) { on ? S.picked.add(id) : S.picked.delete(id); renderStory(); }
+function openPt(id) {
+  S.open = id;
+  document.querySelectorAll('#pts tr').forEach(tr => tr.classList.toggle('sel', tr.getAttribute('onclick')?.includes(`'${id}'`)));
+  const p = S.patients.find(x => x.id === id), r = S.results[id];
+  const crit = Object.fromEntries([...S.summary.inclusion, ...S.summary.exclusion].map(c => [c.id, c.criterion]));
+  const icon = (c) => {
+    const bad = c.id.startsWith('E') ? c.result === 'MET' : c.result === 'NOT_MET';
+    const cls = c.result === 'UNKNOWN' ? 'UNKNOWN' : bad ? 'NOT_MET' : 'MET';
+    return `<span class="${cls}">${cls === 'UNKNOWN' ? '?' : bad ? '✗' : '✓'}</span>`;
+  };
+  $('detail').innerHTML = `<div class="banner"><div class="nm">${esc(p.name)}</div>
+    <div class="muted">${esc(p.id)} &middot; ${p.age} y.o. ${esc(p.sex)} &middot; GAD-7 ${p.gad7} &middot; PHQ-9 ${p.phq9}</div>
+    ${r ? `<div style="margin-top:5px"><span class="pill ${r.status}">${r.status}</span> &nbsp;Score <b>${r.match_score}</b></div>` : ''}</div>
+    <div class="sb">${r ? `<p style="margin:0 0 8px">${esc(r.summary)}</p>
+      <table><thead><tr><th></th><th>ID</th><th>Evidence</th></tr></thead><tbody>
+      ${r.criteria.map(c => `<tr><td>${icon(c)}</td><td title="${esc(crit[c.id] || '')}"><b>${esc(c.id)}</b></td><td>${esc(c.evidence)}<div class="muted">${esc(crit[c.id] || '')}</div></td></tr>`).join('')}
+      </tbody></table>
+      ${r.open_checks.length ? `<p style="margin:10px 0 2px"><b>Open checks</b></p><ul class="tight">${r.open_checks.map(o => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}`
+      : '<span class="spinner"></span> Screening&hellip;'}
+      <p style="margin:10px 0 2px"><b>Chart</b></p><dl class="kv">${Object.entries(p.fields).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`;
+}
+$('filters').onclick = e => {
+  const f = e.target.dataset.f; if (!f) return;
+  S.filter = f; document.querySelectorAll('#filters .btn').forEach(b => b.classList.toggle('on', b.dataset.f === f)); renderPatients();
+};
+
+function picked() { return S.patients.filter(p => S.picked.has(p.id)).map(p => ({ p, r: S.results[p.id] })); }
+function renderEnroll() {
+  const list = picked();
+  $('enrollHead').innerHTML = `<b>${esc(S.trial.nctId)}</b> &middot; ${esc(S.trial.title)}<br><span class="muted">${list.length} patient(s) selected by the physician on ${new Date().toLocaleString()}. Pre-screen only; confirm eligibility at the consent visit.</span>`;
+  $('enroll').innerHTML = list.map(({ p, r }) => `<tr><td>${esc(p.id)}</td><td><b>${esc(p.name)}</b></td><td>${p.age} ${esc(p.sex)}</td><td>${p.gad7} / ${p.phq9}</td>
+    <td><span class="pill ${r.status}">${r.status}</span></td><td>${esc(r.summary)}</td><td>${r.open_checks.length ? '<ul class="tight">' + r.open_checks.map(o => `<li>${esc(o)}</li>`).join('') + '</ul>' : '<span class="muted">None</span>'}</td></tr>`).join('')
+    || '<tr><td colspan="7" class="muted">No patients selected. Use the checkboxes in Screening Results.</td></tr>';
+}
+function exportCsv() {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = [['trial', 'patient_id', 'name', 'age', 'sex', 'gad7', 'phq9', 'status', 'score', 'summary', 'open_checks'].join(',')]
+    .concat(picked().map(({ p, r }) => [S.trial.nctId, p.id, p.name, p.age, p.sex, p.gad7, p.phq9, r.status, r.match_score, r.summary, r.open_checks.join('; ')].map(q).join(',')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+  a.download = `enrollment_${S.trial.nctId}.csv`; a.click();
+}
+
+setInterval(() => $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 1000);
+api('/api/patients').then(p => { S.patients = p; }).catch(e => err('Patient load failed: ' + e.message));
+loadTrials();
+</script>
+</body>
+</html>

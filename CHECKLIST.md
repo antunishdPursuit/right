@@ -8,6 +8,38 @@
 - **Next action:** validate the clinician Epic-note diagnosis rule with Breanne and Shameeka, and ask whether trial visit SOAP drafting or protocol-to-note QA is the closer Track 2 pain. At the event, lock one concept in 10 minutes and spike it before building the interface.
 - **Blockers / unknowns:** how the Epic note requirement fits trial operations, Breanne's trial-operations view, exact venue address, Luma attendee status, rubric, submission method, and credit availability remain unverified.
 
+## EHR mockup: voice and trial-match ideas (discussed 2026-10-08, not built)
+
+Mockup file: `ehr-notes-mockup.html`. Placeholder patients only; swap in the team's synthetic dataset after the screen layout is final.
+
+### Proposed demo loop
+
+- [ ] **Dictation:** mic button under Notes. Doctor dictates a synthetic visit; ElevenLabs transcription turns it into text.
+- [ ] **Claude SOAP draft:** Claude drafts the four sections from the transcript. The existing check blocks diagnosis wording in the note.
+- [ ] **Trial match panel:** after signing, a right-side panel shows 1–2 trials. Each criterion is marked met, not met, or unknown, with the supporting quote from the note. Wording is "possible match, refer to coordinator", never "eligible".
+- [ ] **Translated patient summary (stretch):** ElevenLabs dubbing reads a plain-language trial summary in one other language. Label it info only.
+- [ ] **Voice agent (cut unless time allows):** decide who it talks to before building anything.
+
+### Risks to resolve
+
+- [ ] Scope: four voice/AI features in a two-hour build. Pick at most two for the live demo.
+- [ ] Eligibility claim: software can't decide eligibility; the coordinator does. Show unknown criteria.
+- [ ] No-diagnosis rule vs. matching: most trial criteria need a diagnosis. Decide whether matching reads the Problem List or only symptoms and screener scores.
+- [ ] Recording the patient (ambient listening) needs patient consent, and real health data to ElevenLabs needs their enterprise BAA and zero retention. Demo with a teammate reading a synthetic script.
+- [ ] Translated trial materials normally need ethics-board (IRB) approval. Dubbed summary is demo / info only.
+- [ ] Claude must have a visible role: transcript to SOAP draft, and criterion-by-criterion evidence.
+- [ ] Timing: show trials in a quiet side panel during the visit, not a pop-up after the patient leaves (alert fatigue).
+
+### Open questions for the team
+
+- [ ] ElevenLabs test screen under Wrap-Up, or the real flow built into the Notes screen?
+- [ ] Voice agent audience: the doctor, or the patient? In the room or after the visit?
+- [ ] Where does the diagnosis for matching come from, given the note can't include it?
+- [ ] Real ClinicalTrials.gov trials or hand-written demo trials?
+- [ ] Which language for the dubbed summary? Ask Breanne and Shameeka.
+- [ ] Have the practitioners confirmed that trial recruitment at the visit is a real gap?
+- [ ] Owners: voice integrations, Claude note drafting, and trial matching are three separate pieces of work.
+
 ## Before arrival
 
 - [ ] Verify Luma approval and exact Fabrik NYC address in the attendee view.

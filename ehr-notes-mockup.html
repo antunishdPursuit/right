@@ -2,27 +2,78 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EHR Notes Mockup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClinicView Notes</title>
 <style>
+  /* Layout: EHR shell. App bar, workspace tabs, then one view: department schedule, patient lookup, or a patient chart. */
   :root {
     --chrome: #2b5f8a;
     --chrome-dark: #1d4566;
     --chrome-light: #d9e6f2;
-    --tab-active: #ffffff;
+    --chrome-top: #3a76a8;
+    --on-chrome: #ffffff;
+    --tab-idle: #8fb0cc;
     --bg: #eef1f4;
     --panel: #ffffff;
     --border: #c3ccd5;
+    --divider: #e6eaee;
     --text: #1f2a35;
     --muted: #5b6875;
     --accent: #0a6ebd;
+    --hover: #f2f6fa;
+    --storyboard: #f6f8fa;
+    --avatar: #8fa5b9;
+    --rail: #e3e9ef;
+    --rail-hover: #d4dde6;
+    --btn: #f4f6f8;
+    --btn-hover: #e7edf2;
+    --section-head: #edf2f7;
+    --focus: #9cc7ea;
     --warn-bg: #fff4d6;
     --warn-border: #e2b740;
-    --alert: #b3261e;
+    --warn-text: #7a5a00;
     --ok: #2e7d32;
-    --storyboard: #f6f8fa;
+    --ok-bg: #e3f1e4;
+    --ok-text: #1f5e23;
+    --info-bg: #e1eefa;
+    --info-text: #0b5394;
+    --neutral-bg: #eceff2;
+    --neutral-text: #4a5663;
+    --alert: #b3261e;
+    --blank-bg: #fff2b3;
+    --blank-border: #c49a00;
   }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --chrome: #1f4a6e; --chrome-dark: #13314b; --chrome-light: #1f3a52; --chrome-top: #2a5b85;
+      --on-chrome: #ffffff; --tab-idle: #3d5a73;
+      --bg: #12181e; --panel: #1b232c; --border: #34414e; --divider: #26313b;
+      --text: #e3e9ef; --muted: #9aa8b5; --accent: #6fb3ea; --hover: #222d37;
+      --storyboard: #161d24; --avatar: #4a6178; --rail: #151c22; --rail-hover: #222d37;
+      --btn: #25303b; --btn-hover: #2e3b47; --section-head: #222c36; --focus: #3d7bb0;
+      --warn-bg: #3a3016; --warn-border: #8a6d1e; --warn-text: #f0cf72;
+      --ok: #2f7d34; --ok-bg: #1d3420; --ok-text: #8fd493;
+      --info-bg: #183049; --info-text: #8cc4f2; --neutral-bg: #26303a; --neutral-text: #b3bfca;
+      --alert: #ff8a80; --blank-bg: #4a3d0f; --blank-border: #c49a00;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --chrome: #1f4a6e; --chrome-dark: #13314b; --chrome-light: #1f3a52; --chrome-top: #2a5b85;
+    --on-chrome: #ffffff; --tab-idle: #3d5a73;
+    --bg: #12181e; --panel: #1b232c; --border: #34414e; --divider: #26313b;
+    --text: #e3e9ef; --muted: #9aa8b5; --accent: #6fb3ea; --hover: #222d37;
+    --storyboard: #161d24; --avatar: #4a6178; --rail: #151c22; --rail-hover: #222d37;
+    --btn: #25303b; --btn-hover: #2e3b47; --section-head: #222c36; --focus: #3d7bb0;
+    --warn-bg: #3a3016; --warn-border: #8a6d1e; --warn-text: #f0cf72;
+    --ok: #2f7d34; --ok-bg: #1d3420; --ok-text: #8fd493;
+    --info-bg: #183049; --info-text: #8cc4f2; --neutral-bg: #26303a; --neutral-text: #b3bfca;
+    --alert: #ff8a80; --blank-bg: #4a3d0f; --blank-border: #c49a00;
+    color-scheme: dark;
+  }
+
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; height: 100%; }
   body {
     font: 13px/1.4 "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
@@ -31,123 +82,220 @@
     display: flex;
     flex-direction: column;
   }
+  button { font: inherit; color: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible {
+    outline: 2px solid var(--focus); outline-offset: -2px;
+  }
 
-  /* ---------- Top application chrome ---------- */
+  /* ---------- App chrome ---------- */
   .appbar {
-    background: linear-gradient(#3a76a8, var(--chrome));
-    color: #fff;
-    display: flex;
-    align-items: center;
-    gap: 18px;
+    background: linear-gradient(var(--chrome-top), var(--chrome));
+    color: var(--on-chrome);
+    display: flex; align-items: center; gap: 14px;
     padding: 4px 10px;
     border-bottom: 1px solid var(--chrome-dark);
   }
   .appbar .logo { font-weight: 700; letter-spacing: .5px; padding-right: 12px; border-right: 1px solid rgba(255,255,255,.3); }
   .appbar button {
-    background: none; border: 0; color: #fff; font: inherit; cursor: pointer;
+    background: none; border: 0; color: var(--on-chrome); cursor: pointer;
     padding: 3px 6px; border-radius: 3px;
   }
   .appbar button:hover { background: rgba(255,255,255,.15); }
   .appbar .spacer { flex: 1; }
-  .appbar .user { opacity: .9; }
+  .appbar .user { opacity: .9; white-space: nowrap; }
 
-  .patient-tabs {
+  .ws-tabs {
     background: var(--chrome-dark);
-    display: flex;
-    gap: 2px;
+    display: flex; gap: 2px;
     padding: 4px 8px 0;
+    overflow-x: auto;
   }
-  .patient-tabs .ptab {
-    background: #8fb0cc; color: var(--text);
-    padding: 4px 14px; border-radius: 4px 4px 0 0; font-size: 12px;
+  .ws-tab {
+    background: var(--tab-idle); color: var(--text); border: 0; cursor: pointer;
+    padding: 4px 12px; border-radius: 4px 4px 0 0; font-size: 12px; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
   }
-  .patient-tabs .ptab.active { background: var(--bg); font-weight: 600; }
-  .patient-tabs .ptab .x { margin-left: 8px; color: var(--muted); }
+  .ws-tab.active { background: var(--bg); font-weight: 600; }
+  .ws-tab .x { color: var(--muted); padding: 0 2px; border-radius: 2px; }
+  .ws-tab .x:hover { background: var(--rail-hover); color: var(--text); }
 
-  /* ---------- Main layout ---------- */
-  .workspace { flex: 1; display: flex; min-height: 0; }
+  .view { flex: 1; display: flex; min-height: 0; }
 
-  /* Storyboard (left patient summary) */
+  /* ---------- Shared pills and tables ---------- */
+  .pill {
+    display: inline-block; font-size: 11px; font-weight: 600; line-height: 16px;
+    padding: 0 6px; border-radius: 3px; white-space: nowrap;
+  }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-text); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn-text); }
+  .pill.info { background: var(--info-bg); color: var(--info-text); }
+  .pill.neutral { background: var(--neutral-bg); color: var(--neutral-text); }
+  .pill.strong { background: var(--accent); color: var(--panel); }
+
+  .table-wrap { overflow: auto; min-width: 0; }
+  table.grid {
+    width: 100%; border-collapse: collapse; background: var(--panel);
+    font-variant-numeric: tabular-nums;
+  }
+  .grid th {
+    position: sticky; top: 0; z-index: 1;
+    text-align: left; font-weight: 600; font-size: 12px; color: var(--muted);
+    background: var(--section-head); border-bottom: 1px solid var(--border);
+    padding: 6px 10px; white-space: nowrap;
+  }
+  .grid td { padding: 7px 10px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+  .grid tr.row { cursor: pointer; }
+  .grid tr.row:hover td { background: var(--hover); }
+  .grid .pt { font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .grid .sub { color: var(--muted); font-size: 12px; }
+  .grid .nowrap { white-space: nowrap; }
+  .problems { display: flex; flex-direction: column; gap: 2px; min-width: 180px; }
+  .problems .code { color: var(--muted); font-size: 11px; }
+  .problems .prov { color: var(--warn-text); font-size: 11px; }
+
+  /* ---------- Department schedule ---------- */
+  .prov-list {
+    width: 250px; flex-shrink: 0; overflow-y: auto;
+    background: var(--panel); border-right: 1px solid var(--border);
+  }
+  .prov-list h2 {
+    margin: 0; padding: 10px 12px 6px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--muted);
+  }
+  .prov {
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 8px;
+    width: 100%; text-align: left; cursor: pointer;
+    background: none; border: 0; border-left: 3px solid transparent;
+    border-bottom: 1px solid var(--divider);
+    padding: 8px 12px;
+  }
+  .prov:hover { background: var(--hover); }
+  .prov.active { background: var(--chrome-light); border-left-color: var(--accent); }
+  .prov .nm { font-weight: 600; }
+  .prov .role { color: var(--muted); font-size: 12px; }
+  .prov .count { color: var(--muted); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+  .prov .dx { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .meter { flex: 1; height: 6px; background: var(--divider); border-radius: 3px; overflow: hidden; }
+  .meter span { display: block; height: 100%; background: var(--ok); }
+
+  .sched-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .sched-head {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 10px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px;
+  }
+  .sched-head h1 { font-size: 16px; margin: 0; }
+  .sched-head .when { color: var(--muted); }
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 3px;
+    padding: 6px 12px; display: flex; flex-direction: column; min-width: 120px;
+  }
+  .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .stat .val { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .val small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .sched-main .table-wrap { flex: 1; margin: 0 14px; border: 1px solid var(--border); }
+  .legend {
+    padding: 8px 14px 12px; color: var(--muted); font-size: 12px;
+    display: flex; flex-wrap: wrap; gap: 4px 16px;
+  }
+
+  /* ---------- Patient lookup ---------- */
+  .lookup { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .lookup h1 { font-size: 16px; margin: 0; }
+  .lookup-form {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 3px;
+    padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+  }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  .field input, .field select {
+    font: inherit; color: var(--text); background: var(--panel);
+    padding: 4px 6px; border: 1px solid var(--border); border-radius: 3px; width: 200px; max-width: 100%;
+  }
+  .lookup .count { color: var(--muted); }
+  .lookup .table-wrap { border: 1px solid var(--border); }
+
+  /* ---------- Patient chart ---------- */
   .storyboard {
     width: 220px; flex-shrink: 0;
-    background: var(--storyboard);
-    border-right: 1px solid var(--border);
-    padding: 10px;
-    overflow-y: auto;
+    background: var(--storyboard); border-right: 1px solid var(--border);
+    padding: 10px; overflow-y: auto;
   }
   .avatar {
     width: 64px; height: 64px; border-radius: 4px;
-    background: #b9c7d4; color: #fff; font-size: 26px; font-weight: 600;
+    background: var(--avatar); color: var(--on-chrome); font-size: 24px; font-weight: 600;
     display: grid; place-items: center; margin-bottom: 8px;
   }
   .pt-name { font-size: 16px; font-weight: 700; }
-  .pt-meta { color: var(--muted); margin-bottom: 10px; }
+  .pt-meta { color: var(--muted); margin-bottom: 10px; font-variant-numeric: tabular-nums; }
   .sb-section { border-top: 1px solid var(--border); padding: 8px 0; }
-  .sb-label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 2px; }
+  .sb-label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 3px; }
   .allergy { color: var(--alert); font-weight: 600; }
   .flag {
     display: inline-block; background: var(--warn-bg); border: 1px solid var(--warn-border);
     padding: 1px 6px; border-radius: 3px; font-size: 11px; margin: 2px 2px 0 0;
   }
-  .vitals { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
-  .vitals span:nth-child(odd) { color: var(--muted); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-variant-numeric: tabular-nums; }
+  .kv span:nth-child(odd) { color: var(--muted); }
+  .sb-problem { margin-bottom: 5px; }
+  .sb-problem .code { color: var(--muted); font-size: 11px; }
+  .sb-hint { color: var(--muted); font-size: 11px; }
 
-  /* Activity tabs (vertical) */
   .activities {
     width: 120px; flex-shrink: 0;
-    background: #e3e9ef; border-right: 1px solid var(--border);
+    background: var(--rail); border-right: 1px solid var(--border);
     padding-top: 6px;
   }
   .activities button {
     display: block; width: 100%; text-align: left;
     background: none; border: 0; border-left: 3px solid transparent;
-    padding: 7px 10px; font: inherit; color: var(--text); cursor: pointer;
+    padding: 7px 10px; cursor: pointer; white-space: nowrap;
   }
-  .activities button:hover { background: #d4dde6; }
+  .activities button:hover { background: var(--rail-hover); }
   .activities button.active { background: var(--panel); border-left-color: var(--accent); font-weight: 600; }
 
-  /* Notes activity */
   .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .activity-header {
     background: var(--panel); border-bottom: 1px solid var(--border);
-    padding: 8px 14px; display: flex; align-items: center; gap: 12px;
+    padding: 8px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
   }
   .activity-header h1 { font-size: 16px; margin: 0; }
   .encounter { color: var(--muted); }
+  .placeholder { padding: 24px 14px; color: var(--muted); max-width: 60ch; }
+  .pl-wrap { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+  .pl-wrap .table-wrap { border: 1px solid var(--border); }
 
   .notes-split { flex: 1; display: flex; min-height: 0; }
   .note-list {
-    width: 270px; flex-shrink: 0;
+    width: 260px; flex-shrink: 0;
     background: var(--panel); border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
   }
   .note-list .filters { padding: 8px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; }
   .note-list .filters select, .note-list .filters input {
-    font: inherit; padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; flex: 1; min-width: 0;
+    font: inherit; color: var(--text); background: var(--panel);
+    padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; flex: 1; min-width: 0;
   }
   .note-items { overflow-y: auto; flex: 1; }
   .note-item {
-    padding: 8px 10px; border-bottom: 1px solid #e6eaee; cursor: pointer;
+    display: block; width: 100%; text-align: left; background: none; border: 0;
+    padding: 8px 10px; border-bottom: 1px solid var(--divider); cursor: pointer;
   }
-  .note-item:hover { background: #f2f6fa; }
+  .note-item:hover { background: var(--hover); }
   .note-item.active { background: var(--chrome-light); }
-  .note-item .t { font-weight: 600; }
+  .note-item .t { font-weight: 600; display: flex; gap: 6px; align-items: center; }
   .note-item .m { color: var(--muted); font-size: 12px; }
-  .status { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 3px; }
-  .status.incomplete { background: var(--warn-bg); color: #7a5a00; }
-  .status.signed { background: #e3f1e4; color: var(--ok); }
 
-  /* Note editor */
   .editor { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
   .editor-toolbar {
     background: var(--panel); border-bottom: 1px solid var(--border);
     padding: 6px 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
   }
   .tb-btn {
-    font: inherit; background: #f4f6f8; border: 1px solid var(--border); border-radius: 3px;
-    padding: 3px 9px; cursor: pointer; color: var(--text);
+    background: var(--btn); border: 1px solid var(--border); border-radius: 3px;
+    padding: 3px 9px; cursor: pointer;
   }
-  .tb-btn:hover { background: #e7edf2; }
+  .tb-btn:hover { background: var(--btn-hover); }
   .tb-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
   .editor-meta {
     padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 4px 20px;
@@ -159,48 +307,53 @@
     background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 3px;
   }
   .note-body { flex: 1; overflow-y: auto; padding: 10px 14px 20px; }
-  .soap {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 3px;
-    margin-bottom: 10px;
-  }
+  .soap { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; margin-bottom: 10px; }
   .soap h2 {
     margin: 0; font-size: 13px; padding: 5px 10px;
-    background: #edf2f7; border-bottom: 1px solid var(--border);
-    display: flex; justify-content: space-between;
+    background: var(--section-head); border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 8px;
   }
   .soap h2 small { font-weight: 400; color: var(--muted); }
-  .soap .text {
-    padding: 8px 10px; min-height: 48px; outline: none; white-space: pre-wrap;
-  }
-  .soap .text:focus { box-shadow: inset 0 0 0 2px #9cc7ea; }
-  .smartlink { color: var(--accent); background: #e8f2fb; border-radius: 2px; padding: 0 2px; }
-  .blank { background: #fff2b3; border-bottom: 1px dashed #c49a00; padding: 0 3px; }
+  .soap .text { padding: 8px 10px; min-height: 48px; outline: none; white-space: pre-wrap; }
+  .soap .text:focus { box-shadow: inset 0 0 0 2px var(--focus); }
+  .blank { background: var(--blank-bg); border-bottom: 1px dashed var(--blank-border); padding: 0 3px; }
 
   .editor-footer {
     background: var(--panel); border-top: 1px solid var(--border);
-    padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   }
   .editor-footer .spacer { flex: 1; }
   .primary {
-    font: inherit; font-weight: 600; background: var(--ok); color: #fff;
-    border: 1px solid #1f5e23; border-radius: 3px; padding: 5px 16px; cursor: pointer;
+    font-weight: 600; background: var(--ok); color: var(--on-chrome);
+    border: 1px solid var(--ok-text); border-radius: 3px; padding: 5px 16px; cursor: pointer;
   }
   .primary:disabled { opacity: .5; cursor: default; }
   .saved { color: var(--muted); font-size: 12px; }
+  .saved.error { color: var(--alert); font-weight: 600; }
 
   .disclaimer {
     text-align: center; font-size: 11px; color: var(--muted);
-    background: #fafbfc; border-top: 1px solid var(--border); padding: 3px;
+    background: var(--storyboard); border-top: 1px solid var(--border); padding: 3px 16px;
   }
 
   @media (max-width: 900px) {
-    .storyboard, .activities { display: none; }
+    .storyboard { display: none; }
+    .chart { flex-direction: column; }
+    .activities {
+      width: 100%; display: flex; overflow-x: auto; padding-top: 0;
+      border-right: 0; border-bottom: 1px solid var(--border);
+    }
+    .activities button { width: auto; border-left: 0; border-bottom: 3px solid transparent; }
+    .activities button.active { border-bottom-color: var(--accent); }
     .note-list { width: 200px; }
   }
-  @media (max-width: 600px) {
+  @media (max-width: 700px) {
+    .sched { flex-direction: column; }
+    .prov-list { width: 100%; max-height: 210px; border-right: 0; border-bottom: 1px solid var(--border); }
+    .sched-main .table-wrap { min-height: 260px; }
     .notes-split { flex-direction: column; }
-    .note-list { width: 100%; max-height: 180px; border-right: 0; border-bottom: 1px solid var(--border); }
-    .appbar button:not(:first-of-type) { display: none; }
+    .note-list { width: 100%; max-height: 170px; border-right: 0; border-bottom: 1px solid var(--border); }
+    .appbar .opt, .appbar .user { display: none; }
   }
 </style>
 </head>
@@ -208,97 +361,555 @@
 
 <header class="appbar">
   <span class="logo">ClinicView EHR</span>
-  <button>Schedule</button>
-  <button>In Basket</button>
-  <button>Patient Lookup</button>
-  <button>Chart</button>
+  <button id="navSchedule">Schedule</button>
+  <button class="opt" title="Not built in this prototype">In Basket</button>
+  <button id="navLookup">Patient Lookup</button>
   <span class="spacer"></span>
   <span class="user">Dr. R. Rivera, PsyD · Behavioral Health</span>
 </header>
 
-<nav class="patient-tabs">
-  <span class="ptab">Dept Schedule</span>
-  <span class="ptab active">Sample, Alex <span class="x">×</span></span>
-</nav>
+<nav class="ws-tabs" id="wsTabs" aria-label="Open workspaces"></nav>
 
-<div class="workspace">
+<!-- Department schedule -->
+<section class="view sched" id="scheduleView">
+  <aside class="prov-list" id="provList" aria-label="Providers"></aside>
+  <div class="sched-main">
+    <div class="sched-head">
+      <h1 id="schedTitle">Department Appointments</h1>
+      <span class="when">Behavioral Health Clinic · Thu 10/08/2026</span>
+    </div>
+    <div class="summary" id="schedSummary"></div>
+    <div class="table-wrap">
+      <table class="grid" id="schedTable"></table>
+    </div>
+    <div class="legend">
+      <span><span class="pill ok">Dx ready</span> a confirmed diagnosis is on the Problem List</span>
+      <span><span class="pill warn">Provisional</span> diagnosis still being worked up</span>
+      <span><span class="pill neutral">No Dx</span> nothing on file yet, usually a new intake</span>
+      <span>Diagnoses stay on the Problem List and are never written into the progress note.</span>
+    </div>
+  </div>
+</section>
 
-  <!-- Storyboard -->
-  <aside class="storyboard">
-    <div class="avatar">AS</div>
-    <div class="pt-name">Sample, Alex</div>
-    <div class="pt-meta">34 y.o. · They/Them<br>DOB 01/01/1992<br>MRN SYN-000123</div>
-
-    <div class="sb-section">
-      <div class="sb-label">Allergies</div>
-      <div class="allergy">Penicillin (rash)</div>
-    </div>
-    <div class="sb-section">
-      <div class="sb-label">Flags</div>
-      <span class="flag">Synthetic record</span>
-      <span class="flag">Interpreter: No</span>
-    </div>
-    <div class="sb-section">
-      <div class="sb-label">Care Team</div>
-      <div>PCP: Dr. M. Chen</div>
-      <div>BH: Dr. R. Rivera</div>
-    </div>
-    <div class="sb-section">
-      <div class="sb-label">Today's Vitals</div>
-      <div class="vitals">
-        <span>BP</span><span>118/76</span>
-        <span>HR</span><span>72</span>
-        <span>Wt</span><span>68 kg</span>
+<!-- Patient lookup -->
+<section class="view" id="lookupView" hidden>
+  <div class="lookup">
+    <h1>Patient Lookup</h1>
+    <form class="lookup-form" id="lookupForm">
+      <div class="field">
+        <label for="lkName">Name (Last, First)</label>
+        <input id="lkName" autocomplete="off" placeholder="e.g. Sample">
       </div>
-    </div>
-    <div class="sb-section">
-      <div class="sb-label">Screeners</div>
-      <div class="vitals">
-        <span>PHQ-9</span><span>11 (prev 14)</span>
-        <span>GAD-7</span><span>9 (prev 12)</span>
+      <div class="field">
+        <label for="lkMrn">MRN</label>
+        <input id="lkMrn" autocomplete="off" placeholder="e.g. SYN-000123">
       </div>
+      <div class="field">
+        <label for="lkProv">Provider</label>
+        <select id="lkProv"><option value="">Any provider</option></select>
+      </div>
+    </form>
+    <div class="count" id="lkCount"></div>
+    <div class="table-wrap">
+      <table class="grid" id="lkTable"></table>
     </div>
-    <div class="sb-section">
-      <div class="sb-label">Encounter</div>
-      <div>Office Visit · 10/08/2026</div>
-      <div>Follow-up, 50 min</div>
-    </div>
-  </aside>
+  </div>
+</section>
 
-  <!-- Activity tabs -->
-  <nav class="activities">
-    <button>SnapShot</button>
-    <button>Chart Review</button>
-    <button>Results</button>
-    <button>Synopsis</button>
-    <button>Problem List</button>
-    <button>Medications</button>
-    <button class="active">Notes</button>
-    <button>Orders</button>
-    <button>Wrap-Up</button>
-  </nav>
+<!-- Patient chart (re-rendered for the active patient) -->
+<section class="view chart" id="chartView" hidden></section>
 
-  <!-- Notes activity -->
-  <main class="content">
-    <div class="activity-header">
-      <h1>Notes</h1>
-      <span class="encounter">Office Visit — 10/08/2026 — Behavioral Health Clinic</span>
-    </div>
+<div class="disclaimer">Prototype mockup with placeholder patients only. Not connected to any EHR.</div>
 
+<script>
+/* ---------- Placeholder data (swap for the team's synthetic dataset later) ---------- */
+const PROVIDERS = [
+  { id: "rivera", name: "Rivera, R.", cred: "PsyD",  role: "Psychology" },
+  { id: "chen",   name: "Chen, M.",   cred: "MD",    role: "Psychiatry" },
+  { id: "okafor", name: "Okafor, J.", cred: "LCSW",  role: "Psychotherapy" },
+  { id: "brooks", name: "Brooks, S.", cred: "PMHNP", role: "Psychiatric NP" },
+];
+
+const CONDITIONS = {
+  "F32.1":  "Major depressive disorder, single episode, moderate",
+  "F33.1":  "Major depressive disorder, recurrent, moderate",
+  "F41.1":  "Generalized anxiety disorder",
+  "F41.0":  "Panic disorder",
+  "F40.10": "Social anxiety disorder",
+  "F43.12": "Post-traumatic stress disorder, chronic",
+  "F43.23": "Adjustment disorder with mixed anxiety and depressed mood",
+  "F31.81": "Bipolar II disorder",
+  "F90.2":  "ADHD, combined type",
+  "F42.2":  "Obsessive-compulsive disorder",
+  "G47.00": "Insomnia, unspecified",
+  "F10.20": "Alcohol use disorder, moderate",
+  "F11.20": "Opioid use disorder, moderate",
+};
+
+// problems: [code, "Confirmed" | "Provisional", noted]
+const PATIENTS = [
+  { mrn: "SYN-000123", name: "Sample, Alex", age: 34, sex: "X", pronouns: "They/Them", dob: "01/01/1992",
+    provider: "rivera", time: "08:00", visit: "Follow-up, 50 min", status: "In Visit",
+    reason: "work stress and improving sleep", allergies: "Penicillin (rash)", phq: [11, 14], gad: [9, 12],
+    vitals: ["118/76", 72, "68 kg"], problems: [["F33.1", "Confirmed", "03/2025"], ["F41.1", "Confirmed", "03/2025"]], note: "incomplete" },
+  { mrn: "SYN-000131", name: "Ortiz, Maria", age: 41, sex: "F", dob: "06/14/1985",
+    provider: "rivera", time: "09:00", visit: "Follow-up, 50 min", status: "Done",
+    reason: "fewer nightmares since starting trauma-focused work", allergies: "NKDA", phq: [8, 10], gad: [7, 9],
+    vitals: ["124/80", 76, "71 kg"], problems: [["F43.12", "Confirmed", "11/2024"]], note: "signed" },
+  { mrn: "SYN-000144", name: "Lindqvist, Erik", age: 27, sex: "M", dob: "02/03/1999",
+    provider: "rivera", time: "10:00", visit: "New Intake, 60 min", status: "Arrived",
+    reason: "low motivation and trouble concentrating at work", allergies: "NKDA", phq: [12], gad: [6],
+    vitals: ["116/72", 68, "80 kg"], problems: [], note: "not started" },
+  { mrn: "SYN-000152", name: "Haddad, Leila", age: 52, sex: "F", dob: "09/21/1974",
+    provider: "rivera", time: "11:00", visit: "Follow-up, 50 min", status: "Sch",
+    reason: "sudden episodes of racing heart and fear while driving", allergies: "Sulfa (hives)", phq: [7], gad: [13, 15],
+    problems: [["F41.0", "Provisional", "09/2026"]], note: "not started" },
+  { mrn: "SYN-000167", name: "Nakamura, Ken", age: 38, sex: "M", dob: "12/02/1987",
+    provider: "rivera", time: "13:00", visit: "Follow-up, 50 min", status: "Sch",
+    reason: "less time spent on checking rituals", allergies: "NKDA", phq: [6, 8], gad: [10, 12],
+    problems: [["F42.2", "Confirmed", "01/2026"]], note: "not started" },
+
+  { mrn: "SYN-000203", name: "Washington, Dana", age: 45, sex: "F", dob: "04/30/1981",
+    provider: "chen", time: "08:30", visit: "Med Management, 30 min", status: "Done",
+    reason: "stable mood on current medication", allergies: "NKDA", phq: [5, 6], gad: [4, 5],
+    vitals: ["128/82", 74, "77 kg"], problems: [["F31.81", "Confirmed", "07/2022"]], note: "signed" },
+  { mrn: "SYN-000218", name: "Petrov, Ivan", age: 60, sex: "M", dob: "08/09/1966",
+    provider: "chen", time: "09:00", visit: "Med Management, 30 min", status: "Done",
+    reason: "waking at 4 a.m. most nights, mood slightly better", allergies: "Codeine (nausea)", phq: [13, 16], gad: [8, 8],
+    vitals: ["136/88", 80, "88 kg"], problems: [["F33.1", "Confirmed", "02/2023"], ["G47.00", "Confirmed", "02/2023"]], note: "signed" },
+  { mrn: "SYN-000226", name: "Mensah, Kofi", age: 23, sex: "M", dob: "05/17/2003",
+    provider: "chen", time: "09:30", visit: "Psychiatric Evaluation, 60 min", status: "In Visit",
+    reason: "difficulty finishing coursework and losing track of deadlines", allergies: "NKDA", phq: [9], gad: [8],
+    vitals: ["118/70", 82, "70 kg"], problems: [["F90.2", "Provisional", "09/2026"]], note: "incomplete" },
+  { mrn: "SYN-000239", name: "Rossi, Giulia", age: 35, sex: "F", dob: "03/11/1991",
+    provider: "chen", time: "10:30", visit: "Med Management, 30 min", status: "Arrived",
+    reason: "constant worry about family and work", allergies: "NKDA", phq: [8, 9], gad: [14, 16],
+    vitals: ["112/74", 78, "60 kg"], problems: [["F41.1", "Confirmed", "05/2025"]], note: "not started" },
+  { mrn: "SYN-000241", name: "Kim, Jordan", age: 19, sex: "X", pronouns: "They/Them", dob: "10/02/2007",
+    provider: "chen", time: "11:00", visit: "New Intake, 60 min", status: "Sch",
+    reason: "referred by campus health for low mood", allergies: "Peanut (anaphylaxis)", phq: [], gad: [],
+    problems: [], note: "not started" },
+  { mrn: "SYN-000257", name: "Alvarez, Luis", age: 57, sex: "M", dob: "01/25/1969",
+    provider: "chen", time: "14:00", visit: "Med Management, 30 min", status: "Sch",
+    reason: "no cravings reported on buprenorphine", allergies: "NKDA", phq: [4, 5], gad: [3, 4],
+    problems: [["F11.20", "Confirmed", "06/2024"]], note: "not started" },
+
+  { mrn: "SYN-000305", name: "Bennett, Claire", age: 31, sex: "F", dob: "07/19/1995",
+    provider: "okafor", time: "09:00", visit: "Psychotherapy, 50 min", status: "Done",
+    reason: "adjusting to a recent move and job change", allergies: "NKDA", phq: [9, 11], gad: [8, 10],
+    vitals: ["110/70", 70, "58 kg"], problems: [["F43.23", "Confirmed", "08/2026"]], note: "signed" },
+  { mrn: "SYN-000312", name: "Osei, Ama", age: 29, sex: "F", dob: "11/08/1996",
+    provider: "okafor", time: "10:00", visit: "Psychotherapy, 50 min", status: "Done",
+    reason: "avoiding meetings and social events", allergies: "NKDA", phq: [7], gad: [11],
+    vitals: ["114/76", 72, "64 kg"], problems: [["F40.10", "Provisional", "09/2026"]], note: "signed" },
+  { mrn: "SYN-000328", name: "Duarte, Rafael", age: 48, sex: "M", dob: "02/27/1978",
+    provider: "okafor", time: "11:00", visit: "Psychotherapy, 50 min", status: "Arrived",
+    reason: "cut back drinking to weekends, still has flashbacks", allergies: "NKDA", phq: [12, 14], gad: [11, 13],
+    vitals: ["132/86", 84, "90 kg"], problems: [["F43.12", "Confirmed", "04/2025"], ["F10.20", "Confirmed", "04/2025"]], note: "not started" },
+  { mrn: "SYN-000336", name: "Feld, Noah", age: 16, sex: "M", dob: "06/05/2010",
+    provider: "okafor", time: "15:00", visit: "Family Therapy Intake, 60 min", status: "Sch",
+    reason: "parent concerned about withdrawal and school refusal", allergies: "NKDA", phq: [], gad: [],
+    problems: [], note: "not started" },
+
+  { mrn: "SYN-000402", name: "Reyes, Ana", age: 66, sex: "F", dob: "03/03/1960",
+    provider: "brooks", time: "08:00", visit: "Med Management, 30 min", status: "Done",
+    reason: "more energy and back to weekly walks", allergies: "NKDA", phq: [7, 12], gad: [5, 7],
+    vitals: ["130/84", 72, "66 kg"], problems: [["F32.1", "Confirmed", "05/2026"]], note: "signed" },
+  { mrn: "SYN-000415", name: "O'Brien, Liam", age: 40, sex: "M", dob: "12/12/1985",
+    provider: "brooks", time: "08:30", visit: "Med Management, 30 min", status: "Done",
+    reason: "30 days without alcohol, attending peer support", allergies: "NKDA", phq: [6, 9], gad: [6, 8],
+    vitals: ["126/80", 76, "84 kg"], problems: [["F10.20", "Confirmed", "07/2026"]], note: "signed" },
+  { mrn: "SYN-000421", name: "Singh, Priya", age: 33, sex: "F", dob: "08/22/1993",
+    provider: "brooks", time: "09:30", visit: "Med Management, 30 min", status: "In Visit",
+    reason: "trouble switching off worry at night", allergies: "Latex (rash)", phq: [8], gad: [12],
+    vitals: ["108/68", 74, "55 kg"], problems: [["F41.1", "Provisional", "09/2026"]], note: "incomplete" },
+  { mrn: "SYN-000438", name: "Tran, Minh", age: 50, sex: "M", dob: "04/14/1976",
+    provider: "brooks", time: "10:30", visit: "Telehealth Med Management, 30 min", status: "Sch",
+    reason: "low mood returning since winter schedule change", allergies: "NKDA", phq: [14, 10], gad: [7, 6],
+    problems: [["F33.1", "Confirmed", "10/2021"]], note: "not started" },
+  { mrn: "SYN-000446", name: "Hughes, Taylor", age: 25, sex: "X", pronouns: "They/Them", dob: "09/09/2001",
+    provider: "brooks", time: "13:30", visit: "New Intake, 60 min", status: "Sch",
+    reason: "self-referred for anxiety and sleep problems", allergies: "NKDA", phq: [], gad: [],
+    problems: [], note: "not started" },
+];
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const byId = id => PROVIDERS.find(p => p.id === id);
+const byMrn = mrn => PATIENTS.find(p => p.mrn === mrn);
+const provLabel = p => `${byId(p.provider).name}, ${byId(p.provider).cred}`;
+
+function fmtTime(t) {
+  let [h, m] = t.split(":").map(Number);
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2, "0")} ${ap}`;
+}
+function dxState(p) {
+  if (p.problems.some(x => x[1] === "Confirmed")) return "ready";
+  return p.problems.length ? "provisional" : "none";
+}
+const DX_PILL = {
+  ready: '<span class="pill ok">Dx ready</span>',
+  provisional: '<span class="pill warn">Provisional</span>',
+  none: '<span class="pill neutral">No Dx</span>',
+};
+const STATUS_PILL = {
+  "Sch": '<span class="pill neutral">Sch</span>',
+  "Arrived": '<span class="pill info">Arrived</span>',
+  "In Visit": '<span class="pill strong">In Visit</span>',
+  "Done": '<span class="pill ok">Done</span>',
+};
+const NOTE_PILL = {
+  "signed": '<span class="pill ok">Signed</span>',
+  "incomplete": '<span class="pill warn">Incomplete</span>',
+  "not started": '<span class="pill neutral">Not started</span>',
+};
+function sexLabel(p) { return p.pronouns ? `${p.sex} · ${p.pronouns}` : p.sex; }
+function initials(p) { const [last, first] = p.name.split(", "); return first[0] + last[0]; }
+function screenerText(p) {
+  const f = (label, s) => s.length ? `${label}: ${s[0]}${s[1] !== undefined ? ` (previous ${s[1]})` : ""}` : "";
+  const parts = [f("PHQ-9", p.phq), f("GAD-7", p.gad)].filter(Boolean);
+  return parts.length ? parts.join(". ") + "." : "Screeners not yet completed.";
+}
+function problemsCell(p) {
+  if (!p.problems.length) return '<span class="sub">None on file</span>';
+  return `<div class="problems">${p.problems.map(([code, st]) =>
+    `<span>${CONDITIONS[code]} <span class="code">${code}</span>${st === "Provisional" ? ' <span class="prov">provisional</span>' : ""}</span>`
+  ).join("")}</div>`;
+}
+
+/* ---------- Notes ---------- */
+const BLANK = '<span class="blank">***</span>';
+const notesByMrn = {};
+
+function todayNote(p) {
+  const signed = p.note === "signed";
+  return {
+    id: p.mrn + "-today", today: true,
+    title: "Progress Note", author: provLabel(p), date: `10/08/2026 ${fmtTime(p.time)}`,
+    type: p.visit.split(",")[0], status: signed ? "signed" : "incomplete",
+    soap: signed ? {
+      S: `Patient seen for ${p.visit.split(",")[0].toLowerCase()}. Reports ${p.reason}. Denies thoughts of self-harm.`,
+      O: `Alert, oriented, cooperative. Speech and thought process within normal limits. ${screenerText(p)}`,
+      A: "Symptoms as reported above. Patient engaged in the visit and agreed with the plan.",
+      P: "1. Continue current plan.\n2. Follow up in 2 weeks.\n3. Crisis line information provided.",
+    } : {
+      S: `Patient seen for ${p.visit.split(",")[0].toLowerCase()}. Reports ${p.reason}. ${BLANK}`,
+      O: `${screenerText(p)} ${BLANK}`,
+      A: BLANK,
+      P: `1. ${BLANK}`,
+    },
+  };
+}
+
+function getNotes(p) {
+  if (notesByMrn[p.mrn]) return notesByMrn[p.mrn];
+  let list;
+  if (p.mrn === "SYN-000123") {
+    list = [
+      { id: "a1", today: true, title: "Progress Note", author: "Rivera, R., PsyD", date: "10/08/2026 8:00 AM",
+        type: "Follow-up", status: "incomplete", soap: {
+          S: "Patient reports sleep has improved to about 6–7 hours most nights since last visit. States work stress \"is still there but more manageable.\" Has been using the breathing exercise ~4x/week. Reports one difficult weekend after a family conflict; coped by calling a friend. Denies thoughts of self-harm.",
+          O: "Alert, oriented, cooperative. Speech normal rate and volume. Affect mildly constricted, brightened when discussing hobbies. Thought process linear. PHQ-9: 11 (previous 14). GAD-7: 9 (previous 12).",
+          A: `Patient shows improvement in sleep and self-reported coping since last session, with reduced screener scores. Continues to report work-related stress. Engaged and motivated in treatment. ${BLANK}`,
+          P: `1. Continue weekly sessions; next visit 10/15/2026.\n2. Practice breathing exercise daily; add brief evening wind-down routine.\n3. Patient to log stress triggers this week for review.\n4. Safety plan reviewed and current; crisis line information re-provided.\n5. ${BLANK}`,
+        } },
+      { id: "a2", title: "Progress Note", author: "Rivera, R., PsyD", date: "10/01/2026 2:05 PM",
+        type: "Follow-up", status: "signed", soap: {
+          S: "Patient reports trouble falling asleep, averaging 4–5 hours per night. Describes increased workload and tension with manager. Interested in learning coping skills.",
+          O: "Alert, oriented. Appeared tired. Affect anxious. PHQ-9: 14. GAD-7: 12.",
+          A: "Patient reports sleep disruption and elevated stress related to work. Receptive to skills-based approach.",
+          P: "1. Introduced paced breathing exercise.\n2. Sleep hygiene handout given.\n3. Follow up in 1 week.",
+        } },
+      { id: "a3", title: "Telephone Encounter", author: "Nguyen, T., RN", date: "09/26/2026 10:42 AM",
+        type: "Telephone", status: "signed", soap: {
+          S: "Patient called to reschedule appointment from 09/29 to 10/01.", O: "N/A",
+          A: "Scheduling request only.", P: "Appointment moved to 10/01/2026 2:00 PM. Patient confirmed.",
+        } },
+    ];
+  } else {
+    list = [todayNote(p)];
+  }
+  return (notesByMrn[p.mrn] = list);
+}
+
+/* ---------- App state ---------- */
+const state = {
+  view: "schedule",          // "schedule" | "lookup" | patient MRN
+  provider: "all",
+  open: [],                  // open patient MRNs
+  chart: {},                 // mrn -> { activity, noteId }
+};
+
+/* ---------- Workspace tabs ---------- */
+function renderTabs() {
+  const tabs = [
+    { key: "schedule", label: "Dept Schedule" },
+    { key: "lookup", label: "Patient Lookup" },
+    ...state.open.map(m => ({ key: m, label: byMrn(m).name, closable: true })),
+  ];
+  $("wsTabs").innerHTML = tabs.map(t => `
+    <button class="ws-tab ${state.view === t.key ? "active" : ""}" data-tab="${t.key}">
+      ${t.label}${t.closable ? `<span class="x" data-close="${t.key}" title="Close chart">×</span>` : ""}
+    </button>`).join("");
+}
+$("wsTabs").addEventListener("click", e => {
+  const close = e.target.closest("[data-close]");
+  if (close) {
+    saveEdits();
+    const m = close.dataset.close;
+    state.open = state.open.filter(x => x !== m);
+    if (state.view === m) state.view = "schedule";
+    return render();
+  }
+  const tab = e.target.closest("[data-tab]");
+  if (tab) show(tab.dataset.tab);
+});
+
+function show(key) {
+  saveEdits();
+  state.view = key;
+  render();
+}
+function openChart(mrn) {
+  if (!state.open.includes(mrn)) state.open.push(mrn);
+  show(mrn);
+}
+
+function render() {
+  renderTabs();
+  const isPatient = state.view !== "schedule" && state.view !== "lookup";
+  $("scheduleView").hidden = state.view !== "schedule";
+  $("lookupView").hidden = state.view !== "lookup";
+  $("chartView").hidden = !isPatient;
+  if (state.view === "schedule") renderSchedule();
+  else if (state.view === "lookup") renderLookup();
+  else renderChart(byMrn(state.view));
+}
+
+$("navSchedule").addEventListener("click", () => show("schedule"));
+$("navLookup").addEventListener("click", () => { show("lookup"); $("lkName").focus(); });
+
+/* ---------- Department schedule ---------- */
+function stats(list) {
+  return {
+    total: list.length,
+    ready: list.filter(p => dxState(p) === "ready").length,
+    signed: list.filter(p => p.note === "signed").length,
+    here: list.filter(p => p.status === "Arrived" || p.status === "In Visit").length,
+  };
+}
+function provButton(id, name, role, list) {
+  const s = stats(list);
+  const pct = s.total ? Math.round(s.ready / s.total * 100) : 0;
+  return `
+    <button class="prov ${state.provider === id ? "active" : ""}" data-prov="${id}">
+      <span class="nm">${name}</span><span class="count">${s.total} appts</span>
+      <span class="role">${role}</span><span></span>
+      <span class="dx"><span class="meter"><span style="width:${pct}%"></span></span>Dx ready ${s.ready}/${s.total}</span>
+    </button>`;
+}
+function renderSchedule() {
+  $("provList").innerHTML = `<h2>Providers</h2>` +
+    provButton("all", "All providers", "Behavioral Health Clinic", PATIENTS) +
+    PROVIDERS.map(pr => provButton(pr.id, `${pr.name}, ${pr.cred}`, pr.role, PATIENTS.filter(p => p.provider === pr.id))).join("");
+
+  const all = state.provider === "all";
+  const list = PATIENTS.filter(p => all || p.provider === state.provider)
+    .slice().sort((a, b) => a.time.localeCompare(b.time));
+  const s = stats(list);
+  const pr = byId(state.provider);
+  $("schedTitle").textContent = all ? "Department Appointments" : `${pr.name}, ${pr.cred} — Schedule`;
+  $("schedSummary").innerHTML = `
+    <div class="stat"><span class="lbl">Appointments</span><span class="val">${s.total}</span></div>
+    <div class="stat"><span class="lbl">Arrived / in visit</span><span class="val">${s.here}</span></div>
+    <div class="stat"><span class="lbl">Dx ready</span><span class="val">${s.ready}/${s.total} <small>${s.total ? Math.round(s.ready / s.total * 100) : 0}%</small></span></div>
+    <div class="stat"><span class="lbl">Notes signed</span><span class="val">${s.signed}/${s.total}</span></div>`;
+
+  $("schedTable").innerHTML = `
+    <thead><tr>
+      <th>Time</th><th>Status</th><th>Patient</th><th>Age / Sex</th>
+      ${all ? "<th>Provider</th>" : ""}<th>Visit Type</th><th>Problem List</th><th>Dx</th><th>Note</th>
+    </tr></thead>
+    <tbody>${list.map(p => `
+      <tr class="row" tabindex="0" data-mrn="${p.mrn}">
+        <td class="nowrap">${fmtTime(p.time)}</td>
+        <td>${STATUS_PILL[p.status]}</td>
+        <td><div class="pt">${p.name}</div><div class="sub">${p.mrn}</div></td>
+        <td class="nowrap">${p.age} y.o. ${p.sex}</td>
+        ${all ? `<td class="nowrap">${provLabel(p)}</td>` : ""}
+        <td>${p.visit}</td>
+        <td>${problemsCell(p)}</td>
+        <td>${DX_PILL[dxState(p)]}</td>
+        <td>${NOTE_PILL[p.note]}</td>
+      </tr>`).join("")}
+    </tbody>`;
+}
+$("provList").addEventListener("click", e => {
+  const b = e.target.closest("[data-prov]");
+  if (!b) return;
+  state.provider = b.dataset.prov;
+  renderSchedule();
+});
+
+/* Row click or Enter opens the chart */
+function rowOpen(e) {
+  const row = e.target.closest("tr.row");
+  if (!row) return;
+  if (e.type === "keydown" && e.key !== "Enter") return;
+  openChart(row.dataset.mrn);
+}
+["schedTable", "lkTable"].forEach(id => {
+  $(id).addEventListener("click", rowOpen);
+  $(id).addEventListener("keydown", rowOpen);
+});
+
+/* ---------- Patient lookup ---------- */
+$("lkProv").innerHTML += PROVIDERS.map(p => `<option value="${p.id}">${p.name}, ${p.cred}</option>`).join("");
+function renderLookup() {
+  const name = $("lkName").value.trim().toLowerCase();
+  const mrn = $("lkMrn").value.trim().toLowerCase();
+  const prov = $("lkProv").value;
+  const list = PATIENTS.filter(p =>
+    (!name || p.name.toLowerCase().includes(name)) &&
+    (!mrn || p.mrn.toLowerCase().includes(mrn)) &&
+    (!prov || p.provider === prov)
+  ).sort((a, b) => a.name.localeCompare(b.name));
+  $("lkCount").textContent = `${list.length} of ${PATIENTS.length} patients`;
+  $("lkTable").innerHTML = `
+    <thead><tr><th>Name</th><th>MRN</th><th>Age / Sex</th><th>DOB</th><th>Provider</th><th>Today</th><th>Dx</th></tr></thead>
+    <tbody>${list.map(p => `
+      <tr class="row" tabindex="0" data-mrn="${p.mrn}">
+        <td class="pt">${p.name}</td>
+        <td class="nowrap">${p.mrn}</td>
+        <td class="nowrap">${p.age} y.o. ${sexLabel(p)}</td>
+        <td class="nowrap">${p.dob}</td>
+        <td class="nowrap">${provLabel(p)}</td>
+        <td class="nowrap">${fmtTime(p.time)} · ${p.visit.split(",")[0]}</td>
+        <td>${DX_PILL[dxState(p)]}</td>
+      </tr>`).join("") || `<tr><td colspan="7" class="sub">No patients match. Try fewer letters or clear a field.</td></tr>`}
+    </tbody>`;
+}
+$("lookupForm").addEventListener("input", renderLookup);
+$("lookupForm").addEventListener("submit", e => e.preventDefault());
+
+/* ---------- Patient chart ---------- */
+const ACTIVITIES = ["SnapShot", "Chart Review", "Results", "Synopsis", "Problem List", "Medications", "Notes", "Orders", "Wrap-Up"];
+
+function storyboard(p) {
+  const prov = byId(p.provider);
+  return `
+    <aside class="storyboard">
+      <div class="avatar">${initials(p)}</div>
+      <div class="pt-name">${p.name}</div>
+      <div class="pt-meta">${p.age} y.o. · ${sexLabel(p)}<br>DOB ${p.dob}<br>MRN ${p.mrn}</div>
+      <div class="sb-section">
+        <div class="sb-label">Allergies</div>
+        ${p.allergies === "NKDA" ? "<div>No known drug allergies</div>" : `<div class="allergy">${p.allergies}</div>`}
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Problem List</div>
+        ${p.problems.length ? p.problems.map(([code, st]) => `
+          <div class="sb-problem">${CONDITIONS[code]} <span class="code">${code}</span><br>
+            <span class="pill ${st === "Confirmed" ? "ok" : "warn"}">${st}</span></div>`).join("")
+          : '<div>No diagnosis on file</div>'}
+        <div class="sb-hint">Kept here, not in the progress note.</div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Flags</div>
+        <span class="flag">Placeholder record</span>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Care Team</div>
+        <div>BH: ${prov.name}, ${prov.cred}</div>
+        <div>PCP: Dr. A. Patel</div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Today's Vitals</div>
+        ${p.vitals ? `<div class="kv"><span>BP</span><span>${p.vitals[0]}</span><span>HR</span><span>${p.vitals[1]}</span><span>Wt</span><span>${p.vitals[2]}</span></div>`
+          : "<div>Not yet taken</div>"}
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Screeners</div>
+        <div class="kv">
+          <span>PHQ-9</span><span>${p.phq.length ? p.phq[0] + (p.phq[1] !== undefined ? ` (prev ${p.phq[1]})` : "") : "—"}</span>
+          <span>GAD-7</span><span>${p.gad.length ? p.gad[0] + (p.gad[1] !== undefined ? ` (prev ${p.gad[1]})` : "") : "—"}</span>
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Encounter</div>
+        <div>Office Visit · 10/08/2026 ${fmtTime(p.time)}</div>
+        <div>${p.visit}</div>
+      </div>
+    </aside>`;
+}
+
+function renderChart(p) {
+  const cs = state.chart[p.mrn] || (state.chart[p.mrn] = { activity: "Notes", noteId: getNotes(p)[0].id });
+  const act = cs.activity;
+  let body;
+  if (act === "Notes") body = notesActivity(p, cs);
+  else if (act === "Problem List") body = problemActivity(p);
+  else body = `<div class="placeholder">${act === "Wrap-Up"
+    ? "Planned for this tab: voice dictation and a clinical trial match panel. Not built yet."
+    : `${act} isn't built in this prototype.`}</div>`;
+
+  $("chartView").innerHTML = `
+    ${storyboard(p)}
+    <nav class="activities" aria-label="Chart sections">
+      ${ACTIVITIES.map(a => `<button class="${a === act ? "active" : ""}" data-act="${a}">${a}</button>`).join("")}
+    </nav>
+    <div class="content">
+      <div class="activity-header">
+        <h1>${act}</h1>
+        <span class="encounter">Office Visit — 10/08/2026 — ${provLabel(p)}</span>
+      </div>
+      ${body}
+    </div>`;
+}
+
+function problemActivity(p) {
+  return `
+    <div class="pl-wrap">
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th>Problem</th><th>ICD-10</th><th>Status</th><th>Noted</th></tr></thead>
+          <tbody>${p.problems.map(([code, st, noted]) => `
+            <tr><td>${CONDITIONS[code]}</td><td class="nowrap">${code}</td>
+            <td><span class="pill ${st === "Confirmed" ? "ok" : "warn"}">${st}</span></td><td class="nowrap">${noted}</td></tr>`).join("")
+            || '<tr><td colspan="4" class="sub">No problems on file. A diagnosis is usually added after the intake evaluation.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+      <div class="sub">Diagnoses are recorded here. Progress notes for this clinic do not include a diagnosis.</div>
+    </div>`;
+}
+
+function notesActivity(p, cs) {
+  const notes = getNotes(p);
+  const n = notes.find(x => x.id === cs.noteId) || notes[0];
+  const editable = n.status !== "signed";
+  const labels = { S: "Subjective", O: "Objective", A: "Assessment", P: "Plan" };
+  const hints = { S: "patient's own report", O: "observed / measured", A: "clinician observations — no diagnosis", P: "next steps" };
+  return `
     <div class="notes-split">
       <section class="note-list">
         <div class="filters">
-          <select aria-label="Note type filter">
-            <option>All note types</option>
-            <option>Progress Notes</option>
-            <option>H&amp;P</option>
-            <option>Telephone</option>
+          <select id="noteFilter" aria-label="Note type filter">
+            <option>All note types</option><option>Progress Notes</option><option>Telephone</option>
           </select>
-          <input placeholder="Search" aria-label="Search notes">
+          <input id="noteSearch" placeholder="Search" aria-label="Search notes">
         </div>
-        <div class="note-items" id="noteItems"></div>
+        <div class="note-items">
+          ${notes.map(x => `
+            <button class="note-item ${x.id === n.id ? "active" : ""}" data-note="${x.id}">
+              <div class="t">${x.title} ${x.status === "signed" ? NOTE_PILL.signed : NOTE_PILL.incomplete}</div>
+              <div class="m">${x.author}</div>
+              <div class="m">${x.date}</div>
+            </button>`).join("")}
+        </div>
       </section>
-
       <section class="editor">
         <div class="editor-toolbar">
           <button class="tb-btn"><b>B</b></button>
@@ -307,132 +918,86 @@
           <span class="tb-sep"></span>
           <button class="tb-btn">.SmartPhrase</button>
           <button class="tb-btn">Insert SmartText</button>
-          <button class="tb-btn">Refresh</button>
           <span class="tb-sep"></span>
-          <button class="tb-btn" id="nextBlank">Next *** (F2)</button>
+          <button class="tb-btn" data-action="next-blank">Next *** (F2)</button>
         </div>
-
-        <div class="editor-meta" id="noteMeta"></div>
-        <div class="policy-banner" id="policyBanner">
+        <div class="editor-meta">
+          <span>Type: <b>${n.type}</b></span>
+          <span>Author: <b>${n.author}</b></span>
+          <span>Date of Service: <b>${n.date}</b></span>
+          <span>Status: <b>${n.status === "signed" ? "Signed" : "Incomplete"}</b></span>
+        </div>
+        <div class="policy-banner">
           ⚠ Note policy: diagnosis is <b>not</b> entered in this note. Assessment holds clinician-approved observations only.
         </div>
-
-        <div class="note-body" id="noteBody"></div>
-
+        <div class="note-body" id="noteBody" data-mrn="${p.mrn}" data-note="${n.id}">
+          ${Object.keys(labels).map(k => `
+            <div class="soap">
+              <h2>${labels[k]} <small>${hints[k]}</small></h2>
+              <div class="text" data-key="${k}" contenteditable="${editable}">${n.soap[k]}</div>
+            </div>`).join("")}
+        </div>
         <div class="editor-footer">
-          <span class="saved" id="savedState">Draft — not signed</span>
+          <span class="saved" id="savedState">${editable ? "Draft — not signed" : `Signed by ${n.author}`}</span>
           <span class="spacer"></span>
-          <button class="tb-btn">Pend</button>
-          <button class="tb-btn">Share w/ Patient</button>
-          <button class="primary" id="signBtn">Sign</button>
+          <button class="tb-btn" data-action="pend" ${editable ? "" : "disabled"}>Pend</button>
+          <button class="primary" data-action="sign" ${editable ? "" : "disabled"}>${editable ? "Sign" : "Signed"}</button>
         </div>
       </section>
-    </div>
-  </main>
-</div>
-
-<div class="disclaimer">Prototype mockup with synthetic data only. Not connected to any EHR.</div>
-
-<script>
-const notes = [
-  {
-    id: 1,
-    title: "Progress Note",
-    author: "Rivera, R., PsyD",
-    date: "10/08/2026 2:10 PM",
-    status: "incomplete",
-    type: "Behavioral Health Follow-up",
-    soap: {
-      S: "Patient reports sleep has improved to about 6–7 hours most nights since last visit. States work stress \"is still there but more manageable.\" Has been using the breathing exercise ~4x/week. Reports one difficult weekend after a family conflict; coped by calling a friend. Denies thoughts of self-harm.",
-      O: "Alert, oriented, cooperative. Speech normal rate and volume. Affect mildly constricted, brightened when discussing hobbies. Thought process linear. PHQ-9: 11 (previous 14). GAD-7: 9 (previous 12).",
-      A: "Patient shows improvement in sleep and self-reported coping since last session, with reduced screener scores. Continues to report work-related stress. Engaged and motivated in treatment. <span class=\"blank\">***</span>",
-      P: "1. Continue weekly sessions; next visit 10/15/2026.\n2. Practice breathing exercise daily; add brief evening wind-down routine.\n3. Patient to log stress triggers this week for review.\n4. Safety plan reviewed and current; crisis line information re-provided.\n5. <span class=\"blank\">***</span>"
-    }
-  },
-  {
-    id: 2,
-    title: "Progress Note",
-    author: "Rivera, R., PsyD",
-    date: "10/01/2026 2:05 PM",
-    status: "signed",
-    type: "Behavioral Health Follow-up",
-    soap: {
-      S: "Patient reports trouble falling asleep, averaging 4–5 hours per night. Describes increased workload and tension with manager. Interested in learning coping skills.",
-      O: "Alert, oriented. Appeared tired. Affect anxious. PHQ-9: 14. GAD-7: 12.",
-      A: "Patient reports sleep disruption and elevated stress related to work. Receptive to skills-based approach.",
-      P: "1. Introduced paced breathing exercise.\n2. Sleep hygiene handout given.\n3. Follow up in 1 week."
-    }
-  },
-  {
-    id: 3,
-    title: "Telephone Encounter",
-    author: "Nguyen, T., RN",
-    date: "09/26/2026 10:42 AM",
-    status: "signed",
-    type: "Telephone",
-    soap: {
-      S: "Patient called to reschedule appointment from 09/29 to 10/01.",
-      O: "N/A",
-      A: "Scheduling request only.",
-      P: "Appointment moved to 10/01/2026 2:00 PM. Patient confirmed."
-    }
-  }
-];
-
-const labels = { S: "Subjective", O: "Objective", A: "Assessment", P: "Plan" };
-const hints  = { S: "patient's own report", O: "observed / measured", A: "clinician observations — no diagnosis", P: "next steps" };
-let current = notes[0];
-
-function renderList() {
-  document.getElementById("noteItems").innerHTML = notes.map(n => `
-    <div class="note-item ${n.id === current.id ? "active" : ""}" data-id="${n.id}">
-      <div class="t">${n.title} <span class="status ${n.status}">${n.status === "signed" ? "Signed" : "Incomplete"}</span></div>
-      <div class="m">${n.author}</div>
-      <div class="m">${n.date}</div>
-    </div>`).join("");
+    </div>`;
 }
 
-function renderNote() {
-  const n = current;
-  document.getElementById("noteMeta").innerHTML = `
-    <span>Type: <b>${n.type}</b></span>
-    <span>Author: <b>${n.author}</b></span>
-    <span>Date of Service: <b>${n.date}</b></span>
-    <span>Status: <b>${n.status === "signed" ? "Signed" : "Incomplete"}</b></span>`;
-  const editable = n.status !== "signed";
-  document.getElementById("noteBody").innerHTML = Object.keys(labels).map(k => `
-    <div class="soap">
-      <h2>${labels[k]} <small>${hints[k]}</small></h2>
-      <div class="text" data-key="${k}" contenteditable="${editable}">${n.soap[k]}</div>
-    </div>`).join("");
-  const signBtn = document.getElementById("signBtn");
-  signBtn.disabled = !editable;
-  signBtn.textContent = editable ? "Sign" : "Signed";
-  document.getElementById("savedState").textContent =
-    editable ? "Draft — not signed" : `Signed by ${n.author}`;
+function currentNote() {
+  const nb = $("noteBody");
+  if (!nb || $("chartView").hidden) return null;
+  return { p: byMrn(nb.dataset.mrn), n: getNotes(byMrn(nb.dataset.mrn)).find(x => x.id === nb.dataset.note) };
 }
-
-document.getElementById("noteItems").addEventListener("click", e => {
-  const item = e.target.closest(".note-item");
-  if (!item) return;
-  saveEdits();
-  current = notes.find(n => n.id === Number(item.dataset.id));
-  renderList();
-  renderNote();
-});
-
 function saveEdits() {
-  document.querySelectorAll(".soap .text[contenteditable=true]").forEach(el => {
-    current.soap[el.dataset.key] = el.innerHTML;
-  });
+  const cur = currentNote();
+  if (!cur || cur.n.status === "signed") return;
+  document.querySelectorAll("#noteBody .text").forEach(el => { cur.n.soap[el.dataset.key] = el.innerHTML; });
 }
 
-document.getElementById("noteBody").addEventListener("input", () => {
-  document.getElementById("savedState").textContent = "Draft — unsaved changes";
+$("chartView").addEventListener("click", e => {
+  const p = byMrn(state.view);
+  const cs = state.chart[p.mrn];
+  const act = e.target.closest("[data-act]");
+  if (act) { saveEdits(); cs.activity = act.dataset.act; return renderChart(p); }
+  const note = e.target.closest("[data-note].note-item");
+  if (note) { saveEdits(); cs.noteId = note.dataset.note; return renderChart(p); }
+  const action = e.target.closest("[data-action]");
+  if (!action) return;
+  const a = action.dataset.action;
+  if (a === "next-blank") return nextBlank();
+  const cur = currentNote();
+  if (a === "pend") {
+    saveEdits();
+    $("savedState").className = "saved";
+    $("savedState").textContent = "Pended — you can finish and sign later";
+  }
+  if (a === "sign") {
+    saveEdits();
+    if (document.querySelector("#noteBody .blank")) {
+      $("savedState").className = "saved error";
+      $("savedState").textContent = "Can't sign yet: fill the highlighted *** blanks first (F2 jumps to the next one).";
+      return;
+    }
+    cur.n.status = "signed";
+    if (cur.n.today) cur.p.note = "signed";
+    renderChart(p);
+  }
 });
 
-document.getElementById("nextBlank").addEventListener("click", () => {
-  const blank = document.querySelector(".note-body .blank");
+$("chartView").addEventListener("input", e => {
+  if (!e.target.closest("#noteBody")) return;
+  const cur = currentNote();
+  if (cur && cur.n.today && cur.p.note === "not started") cur.p.note = "incomplete";
+  $("savedState").className = "saved";
+  $("savedState").textContent = "Draft — unsaved changes";
+});
+
+function nextBlank() {
+  const blank = document.querySelector("#noteBody .blank");
   if (!blank) return;
   blank.scrollIntoView({ block: "center" });
   const range = document.createRange();
@@ -440,25 +1005,12 @@ document.getElementById("nextBlank").addEventListener("click", () => {
   const sel = getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
-});
-
-document.getElementById("signBtn").addEventListener("click", () => {
-  saveEdits();
-  if (document.querySelector(".note-body .blank")) {
-    alert("Cannot sign: note still contains *** blanks. Press F2 / \"Next ***\" to complete them.");
-    return;
-  }
-  current.status = "signed";
-  renderList();
-  renderNote();
-});
-
+}
 document.addEventListener("keydown", e => {
-  if (e.key === "F2") { e.preventDefault(); document.getElementById("nextBlank").click(); }
+  if (e.key === "F2" && !$("chartView").hidden) { e.preventDefault(); nextBlank(); }
 });
 
-renderList();
-renderNote();
+render();
 </script>
 </body>
 </html>

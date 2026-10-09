@@ -2,7 +2,9 @@
 
 Triright helps behavioral health clinicians find recruiting clinical trials a patient may fit, see why, and explain a trial to the patient in plain language, without leaving the chart.
 
-**[▶ Watch the 66-second launch film](https://github.com/antunishdPursuit/right/releases/tag/launch-film)**
+https://github.com/user-attachments/assets/18b51dbe-814f-4a8c-9311-8eaf4f135652
+
+[Download the full-quality film (51 MB)](https://github.com/antunishdPursuit/right/releases/tag/launch-film)
 
 ## Try it
 

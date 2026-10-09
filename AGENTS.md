@@ -8,11 +8,13 @@ The team has a two-hour build and a 2–3 minute live demo. A demo that works ev
 
 | Path | What it is |
 | --- | --- |
+| `README.md` | Front page for practitioners: what Triright does, the launch film, and the live demo link. Keep it short and free of setup steps; those belong in `app/README.md`. |
 | `app/app.py` | Standard-library HTTP server on port 8000. Loads the synthetic patients, fetches trials from ClinicalTrials.gov API v2, and calls Claude to parse criteria and screen patients. |
 | `app/static/index.html` | The whole EHR mockup, including the trial-match tab. This is the live UI. |
 | `app/static/voice-panel.js` | The "Explain to patient" side panel. Calls the voice service: `http://localhost:8001` when the page runs on localhost, `/voice` on the same site when deployed (override with `window.RIGHT_VOICE_URL`). |
 | `app/synthetic-patient-data.md` | 24 synthetic patients, the team reference trial (`REF-GAD-01`), and an answer key in section 3. `app.py` parses this file by its headings and field labels and asserts there are 24 patients, so keep that format. The answer key is for checking results and is never sent to the model. |
 | `app/voice/` | FastAPI service: port 8001 locally, `/voice` on Vercel (via `app/api/voice.py`). Claude writes the patient script and grades teach-back; ElevenLabs handles speech, dubbing, and two voice agents. `app/voice/README.md` lists the endpoints. |
+| `demo/launch-film/` | The 66-second launch film, built with HyperFrames. The full-quality MP4 is on the `launch-film` GitHub Release; renders are git-ignored. |
 | `ehr-notes-mockup.html` | Earlier standalone mockup, superseded by `app/static/index.html`. |
 | `CHECKLIST.md` | Current decisions, open risks, and what is in scope. Read it before deciding what to build, and record new decisions there. |
 | `PRD.md`, `SYSTEM_FLOW.md` | The full product vision. Much of it (SMART on FHIR, Postgres, wearables, a 12-week plan) is beyond the demo. |

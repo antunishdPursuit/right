@@ -389,6 +389,18 @@
   .crit-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
   .crit-tbl td { padding: 4px 6px; border-bottom: 1px solid var(--divider); vertical-align: top; background: none !important; }
   .ic-ok { color: var(--ok); font-weight: 700; } .ic-bad { color: var(--alert); font-weight: 700; } .ic-unk { color: var(--warn-text); font-weight: 700; }
+  /* Toolbar row across the top of an open trial. "Explain to patient" is chrome blue like the app bar,
+     so it reads apart from the green "Run trial match". */
+  .mt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 12px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 5px 8px; }
+  .mt-actions .hint { color: var(--muted); font-size: 12px; }
+  .vp-launch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    font-weight: 600; color: var(--on-chrome); background: linear-gradient(var(--chrome-top), var(--chrome));
+    border: 1px solid var(--chrome-dark); border-radius: 3px; padding: 4px 6px 4px 9px; }
+  .vp-launch:hover { filter: brightness(1.1); }
+  .vp-launch svg { width: 15px; height: 15px; flex: none; }
+  .vp-launch .tag { font-size: 10.5px; line-height: 16px; padding: 0 5px; border-radius: 2px; background: rgba(255,255,255,.2); }
+  .vp-launch .tag.ok { background: var(--ok-bg); color: var(--ok-text); }
   .mt-note { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); padding: 6px 10px; font-size: 12px; }
   .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -812,8 +824,10 @@ function mtDetail(r) {
     const bad = k.id.startsWith("E") ? k.result === "MET" : k.result === "NOT_MET";
     return k.result === "UNKNOWN" ? '<span class="ic-unk">?</span>' : bad ? '<span class="ic-bad">✗</span>' : '<span class="ic-ok">✓</span>';
   };
-  return `<div class="mt-cols">
-    <div>${x.status !== "EXCLUDED" ? `<button class="primary" data-voice style="float:right">Explain to patient</button>` : ""}<h3>Trial summary</h3><p>${esc(c.overview)}</p>
+  return `${x.status !== "EXCLUDED" ? `<div class="mt-actions">${voiceBtn(t.nctId)}
+      <span class="hint">Explains this trial by voice, in English or Spanish. Nothing plays until you approve the script.</span></div>` : ""}
+    <div class="mt-cols">
+    <div><h3>Trial summary</h3><p>${esc(c.overview)}</p>
       ${t.interventions?.length ? `<p><b>Intervention:</b> ${esc(t.interventions.join(", "))}</p>` : ""}
       ${c.involves ? `<p><b>What it involves:</b> ${esc(c.involves)}</p>` : ""}
       <p><b>Nearest site:</b> ${esc(t.site || "-")}${t.nSites > 1 ? ` (+${t.nSites - 1} more in NYC)` : ""}</p>
@@ -824,6 +838,15 @@ function mtDetail(r) {
       <table class="crit-tbl">${x.criteria.map(k => `<tr><td>${icon(k)}</td><td class="nowrap"><b>${esc(k.id)}</b></td><td>${esc(k.evidence)}<div class="sub">${esc(text[k.id] || "")}</div></td></tr>`).join("")}</table>
       ${x.open_checks.length ? `<h4>Confirm with patient</h4><ul>${x.open_checks.map(o => `<li>${esc(o)}</li>`).join("")}</ul>` : ""}</div></div>`;
 }
+const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+function voiceBtn(id) {
+  const ok = window.RightVoice?.isApproved(id);
+  return `<button class="vp-launch" data-voice="${esc(id)}" title="${ok ? "Script approved. Reopens where you left off." : "Explain this trial to the patient by voice, in English or Spanish"}">${SPEAKER}Explain to patient<span class="tag ${ok ? "ok" : ""}">${ok ? "✓ Approved" : "EN · ES"}</span></button>`;
+}
+// The voice panel reports approval changes; swap the button in place so the open trial row doesn't re-render.
+document.addEventListener("rightvoice:change", e => document.querySelectorAll(".vp-launch").forEach(b => {
+  if (b.dataset.voice === e.detail.id) b.outerHTML = voiceBtn(e.detail.id);
+}));
 $("matchView").addEventListener("click", e => {
   const pt = e.target.closest("[data-pid]");
   if (pt) return mtSelect(pt.dataset.pid);

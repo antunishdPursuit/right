@@ -806,6 +806,8 @@ async function renderMatch() {
     ${rows ? `<div class="table-wrap mt-table"><table class="grid"><thead><tr><th>Match</th><th>Trial</th><th>Status</th><th>Why</th><th></th></tr></thead><tbody>
       ${shown.map(r => mtRow(r, rows.indexOf(r))).join("") || '<tr><td colspan="5" class="sub">No recruiting trials match right now.</td></tr>'}</tbody></table></div>` : ""}
     <div class="mt-note">Screening aid only. Final eligibility is determined by the study team. Synthetic patients, no PHI.</div>`;
+  const opened = rows && MT.open != null ? rows[MT.open] : null;
+  if (opened && opened.result.status !== "EXCLUDED") window.RightVoice?.check(opened.trial, opened.criteria);
 }
 function mtRow(r, i) {
   const t = r.trial, x = r.result, open = MT.open === i;

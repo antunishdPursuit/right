@@ -174,6 +174,23 @@ async function open(trial, criteria) {
     if (S === st) { st.open = null; render(); }
   } catch (e) { if (S === st) msg("scriptMsg", e.message, "error"); }
 }
+// Learn a trial's approval before its panel opens, so the EHR button shows it even after a page reload.
+const checking = new Set();
+async function check(trial, criteria) {
+  const id = trial.nctId;
+  if (trials.has(id) || checking.has(id)) return;
+  checking.add(id);
+  try {
+    const d = await (await post("/api/trials", { trial, criteria_summary: criteria })).json();
+    if (trials.has(id)) return;  // the panel opened meanwhile and has its own state
+    const st = newState(trial, criteria);
+    st.approved = d.approved;
+    st.script = structuredClone(d.approved || d.draft || null);
+    trials.set(id, st);
+    if (st.approved) changed(st);
+  } catch {}  // voice service unreachable: the button keeps its default label
+  finally { checking.delete(id); }
+}
 async function stopAll() {
   session++;
   if (recorder) { recorder.onstop = null; recorder.stop(); recorder.stream.getTracks().forEach(t => t.stop()); recorder = null; }
@@ -589,4 +606,4 @@ function watchMic(c, kind, mine, micLabel) {
 }
 
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !root.hidden && !convo) close(); });
-window.RightVoice = { open, close, isApproved: id => !!trials.get(id)?.approved };
+window.RightVoice = { open, close, check, isApproved: id => !!trials.get(id)?.approved };

@@ -5,6 +5,3 @@ Untitled
 # Locally installed Claude skills and their lock file
 .claude/skills/
 skills-lock.json
-
-# Rendered demo videos: share these directly, not through the repo
-demo/*.mp4

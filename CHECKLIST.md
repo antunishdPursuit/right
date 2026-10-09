@@ -2,11 +2,7 @@
 
 ## Current state
 
-- **Phase:** practitioner-informed concept update; no concept selected or code started.
-- **Clock:** as of 2026-10-08 2:33 p.m. EDT, about 2 hours 27 minutes until the event starts at 5:00 p.m. EDT. The exact build and submission cutoffs are not published.
-- **Done:** public event page and Team 8 thread reviewed; Shameeka identified slow post-session notes and weak identifier protection in AI note tools; Shay reported prior trial-matching work. Updated Track 2 candidates are in `CONCEPT_SCORECARD.md`.
-- **Next action:** validate the clinician Epic-note diagnosis rule with Breanne and Shameeka, and ask whether trial visit SOAP drafting or protocol-to-note QA is the closer Track 2 pain. At the event, lock one concept in 10 minutes and spike it before building the interface.
-- **Blockers / unknowns:** how the Epic note requirement fits trial operations, Breanne's trial-operations view, exact venue address, Luma attendee status, rubric, submission method, and credit availability remain unverified.
+- **Phase:** closed out 2026-10-09. Results, gaps, and the remaining to-dos are in `FINAL_CLOSEOUT.md`; the items below are the original planning record.
 
 ## EHR mockup: voice and trial-match ideas (discussed 2026-10-08, not built)
 
@@ -74,4 +70,4 @@ Built in `app/voice/` (see `app/voice/README.md`). The patient listens on the do
 - [ ] Measure at least one outcome against a rules/templates baseline and show an abstention or escalation case.
 - [ ] Test the exact demo build, public links logged out, and local fallback.
 - [ ] Record exact commit, live URL, video, project page, team roster, and official submission confirmation after delivery.
-- [ ] After the event, create one `FINAL_CLOSEOUT.md` with results, evidence limits, and reusable lessons.
+- [x] After the event, create one `FINAL_CLOSEOUT.md` with results, evidence limits, and reusable lessons.

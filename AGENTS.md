@@ -16,6 +16,7 @@ The team has a two-hour build and a 2–3 minute live demo. A demo that works ev
 | `app/voice/` | FastAPI service: port 8001 locally, `/voice` on Vercel (via `app/api/voice.py`). Claude writes the patient script and grades teach-back; ElevenLabs handles speech, dubbing, and two voice agents. `app/voice/README.md` lists the endpoints. |
 | `demo/launch-film/` | The 66-second launch film, built with HyperFrames. The full-quality MP4 is on the `launch-film` GitHub Release; renders are git-ignored. |
 | `ehr-notes-mockup.html` | Earlier standalone mockup, superseded by `app/static/index.html`. |
+| `FINAL_CLOSEOUT.md` | Project closeout: what shipped, what went well and wrong, evidence limits, and remaining to-dos. Read it first if you pick the project back up. |
 | `CHECKLIST.md` | Current decisions, open risks, and what is in scope. Read it before deciding what to build, and record new decisions there. |
 | `PRD.md`, `SYSTEM_FLOW.md` | The full product vision. Much of it (SMART on FHIR, Postgres, wearables, a 12-week plan) is beyond the demo. |
 | `EVENT_BRIEF.md`, `CONCEPT_SCORECARD.md` | Event facts and the concept options the team weighed. |

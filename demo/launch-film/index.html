@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>Triright launch film</title>
+<script src="assets/vendor/gsap.min.js"></script>
+<style>
+  /* Triright launch film. 1920x1080, 66 s, one paused GSAP timeline on window.__timelines.main.
+     Scenes: hook (real snapshot numbers) > title > the real UI (captured 2x from the running app) > trust > end card.
+     Look: the EHR's own chrome blue as a deep ink ground, product shots in light theme, one signal blue accent;
+     green and amber only where the product uses them (criteria met / unknown). */
+  @font-face { font-family: "Public Sans"; src: url("assets/fonts/PublicSans-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  :root {
+    --ink: #0b1d30; --ink-2: #123552; --ink-3: #1d4566;
+    --paper: #ffffff; --mist: #a9c2d8; --dim: #6f8ba6;
+    --signal: #6fb3ea; --ok: #3fb26a; --amber: #f0b429;
+    --ehr-bg: #eef1f4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: "Public Sans", sans-serif; color: var(--paper); }
+  .layer { position: absolute; inset: 0; }
+
+  /* ground */
+  #ground { background: radial-gradient(1500px 900px at 78% 8%, var(--ink-2), var(--ink) 62%); }
+  #glow { position: absolute; left: 260px; top: 160px; width: 1400px; height: 760px; border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(111,179,234,.20), rgba(111,179,234,0)); }
+
+  /* hook */
+  #tiles { position: absolute; left: 96px; top: 84px; width: 1728px; height: 912px;
+           display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(6, 1fr); gap: 12px; }
+  .tile { border: 1px solid rgba(169,194,216,.22); border-radius: 10px; background: rgba(255,255,255,.035);
+          padding: 14px 16px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+  .tile b { font-size: 15px; font-weight: 700; color: var(--signal); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+  .tile span { font-size: 15px; line-height: 1.3; color: var(--mist); }
+  #linesWrap { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
+  #lines { position: absolute; left: 120px; top: 0; width: 1680px; columns: 3; column-gap: 64px; }
+  #lines p { font-size: 21px; line-height: 1.75; color: var(--mist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; break-inside: avoid; }
+  #hookShade { background: radial-gradient(720px 420px at 50% 50%, rgba(11,29,48,.94), rgba(11,29,48,.55) 70%, rgba(11,29,48,.2)); }
+  #big { position: absolute; left: 0; top: 270px; width: 1920px; height: 540px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .num { font-size: 280px; font-weight: 800; line-height: .9; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+  .numLabel { margin-top: 26px; font-size: 44px; font-weight: 500; color: var(--mist); letter-spacing: -.01em; }
+  .numLabel b { color: var(--paper); font-weight: 600; }
+  .stack { position: absolute; left: 0; top: 0; width: 1920px; height: 540px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* title */
+  #titleBox { position: absolute; left: 0; top: 330px; width: 1920px; height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .wordmark { display: flex; align-items: baseline; gap: 26px; }
+  .wm { display: flex; font-size: 190px; font-weight: 800; letter-spacing: -.045em; line-height: 1; }
+  .wm span { display: block; }
+  .wmSuffix { font-size: 76px; font-weight: 400; color: var(--mist); letter-spacing: -.02em; }
+  .tagline { margin-top: 34px; font-size: 46px; font-weight: 400; color: var(--mist); letter-spacing: -.01em; }
+
+  /* product */
+  #rig { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #win { position: absolute; left: 160px; top: 40px; width: 1600px; height: 1000px; border-radius: 16px; overflow: hidden;
+         background: var(--ehr-bg); box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 40px 120px rgba(0,0,0,.55); }
+  .shot { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; }
+  #tallWrap { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; }
+  #tallInner { position: absolute; left: 0; top: 0; width: 1600px; height: 2444.44px; }
+  #tallInner img { position: absolute; left: 0; top: 0; width: 1600px; height: 2444.44px; }
+  #panelCrop { position: absolute; left: 1000px; top: 0; width: 600px; height: 1000px; overflow: hidden; box-shadow: -10px 0 30px rgba(0,0,0,.18); }
+  #panelCrop img { position: absolute; left: -1000px; top: 0; width: 1600px; height: 1000px; }
+  .mark { position: absolute; border-radius: 6px; }
+  .mark.amber { border: 3px solid var(--amber); background: rgba(240,180,41,.10); }
+  .mark.green { border: 3px solid var(--ok); background: rgba(63,178,106,.08); }
+  .mark.blue { border: 3px solid #0a6ebd; background: rgba(10,110,189,.06); }
+  #scan { position: absolute; border-radius: 6px; background: rgba(10,110,189,.10); border-left: 4px solid #0a6ebd; }
+  .dot { position: absolute; width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--ok); }
+  #spinFix { position: absolute; border-radius: 50%; background: var(--ehr-bg); }
+  #spinFix i { position: absolute; inset: 2px; border-radius: 50%; border: 2.4px solid #c3ccd5; border-top-color: #0a6ebd; }
+  .ring { position: absolute; border-radius: 50%; border: 3px solid #2e7d32; }
+  #cursor { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+  #cursor svg { position: absolute; left: -4px; top: -3px; width: 34px; height: 34px; overflow: visible; filter: drop-shadow(0 3px 5px rgba(0,0,0,.35)); }
+  #ripple { position: absolute; left: -32px; top: -32px; width: 64px; height: 64px; border-radius: 50%; border: 3px solid #0a6ebd; }
+
+  #band { background: linear-gradient(to top, rgba(11,29,48,.55), rgba(11,29,48,0) 260px); }
+  .callout { position: absolute; left: 80px; bottom: 64px; max-width: 1400px; padding: 24px 34px 28px; border-radius: 20px;
+             background: rgba(11,29,48,.92); border: 1px solid rgba(169,194,216,.18); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .eyebrow { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--signal); }
+  .eyebrow .n { width: 34px; height: 34px; border-radius: 50%; background: var(--signal); color: var(--ink); display: grid; place-items: center; font-size: 18px; letter-spacing: 0; }
+  .ctitle { margin-top: 10px; font-size: 50px; font-weight: 700; letter-spacing: -.02em; line-height: 1.08; }
+  .csub { margin-top: 10px; font-size: 30px; font-weight: 400; color: var(--mist); }
+  .tag { display: inline-block; margin-left: 10px; font-size: 15px; font-weight: 700; color: var(--ink); background: var(--mist); border-radius: 5px; padding: 3px 8px; letter-spacing: .1em; }
+  #chip { position: absolute; right: 64px; top: 0; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px; margin-top: 18px;
+          border-radius: 999px; background: rgba(11,29,48,.78); border: 1px solid rgba(169,194,216,.35); color: var(--mist); font-size: 17px; font-weight: 600; }
+
+  /* trust */
+  #trustBox { position: absolute; left: 140px; top: 290px; width: 1640px; }
+  .tEyebrow { font-size: 24px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--signal); }
+  .cards { margin-top: 36px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .card { border-radius: 20px; padding: 46px 44px 52px; background: rgba(255,255,255,.05); border: 1px solid rgba(169,194,216,.22); }
+  .card .ic { width: 76px; height: 76px; border-radius: 18px; display: grid; place-items: center; background: rgba(111,179,234,.14); }
+  .card .ic svg { width: 40px; height: 40px; }
+  .card h3 { margin-top: 32px; font-size: 46px; font-weight: 700; letter-spacing: -.02em; }
+  .card p { margin-top: 16px; font-size: 31px; line-height: 1.4; color: var(--mist); }
+
+  /* end */
+  #endBox { position: absolute; left: 0; top: 300px; width: 1920px; display: flex; flex-direction: column; align-items: center; }
+  .endWm { font-size: 170px; }
+  .endLine { margin-top: 40px; display: flex; gap: 18px; font-size: 52px; font-weight: 400; letter-spacing: -.015em; }
+  .endLine .a { color: var(--mist); }
+  .endLine .b { font-weight: 700; }
+  .fine { margin-top: 70px; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 22px; color: var(--dim); }
+  #fadeOut { background: var(--ink); }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="66" data-width="1920" data-height="1080">
+
+  <div id="ground" class="layer clip" data-start="0" data-duration="66" data-track-index="0"><div id="glow"></div></div>
+
+  <!-- 1 · Hook: the real numbers from the Oct 8 snapshot -->
+  <section id="hook" class="layer clip" data-start="0" data-duration="11.3" data-track-index="1">
+    <div id="hookIn" class="layer">
+      <div id="tiles" data-layout-allow-overlap></div>
+      <div id="linesWrap" data-layout-allow-overlap><div id="lines"></div></div>
+      <div id="hookShade" class="layer"></div>
+      <div id="big" data-layout-allow-overlap>
+        <div id="st54" class="stack"><div class="num" id="n54" data-layout-allow-overlap>0</div><div class="numLabel" data-layout-allow-overlap>anxiety trials recruiting near <b>Midtown Manhattan</b></div></div>
+        <div id="st769" class="stack"><div class="num" id="n769" data-layout-allow-overlap>54</div><div class="numLabel" data-layout-allow-overlap>eligibility criteria between them</div></div>
+        <div id="st1" class="stack"><div class="num" data-layout-allow-overlap>1</div><div class="numLabel" data-layout-allow-overlap>visit</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · Title -->
+  <section id="title" class="layer clip" data-start="10.9" data-duration="4.6" data-track-index="2">
+    <div id="titleBox">
+      <div class="wordmark"><div class="wm" id="wm"></div><div class="wmSuffix" id="wmSuffix">· Trial Match</div></div>
+      <div class="tagline" id="tagline">Clinical trial matching, built into the chart.</div>
+    </div>
+  </section>
+
+  <!-- 3–6 · The product, captured from the running app -->
+  <section id="product" class="layer clip" data-start="13.7" data-duration="40.0" data-track-index="3">
+    <div id="rig">
+      <div id="win">
+        <img class="shot" id="s00" src="assets/ui/00-schedule.png" alt="" />
+        <img class="shot" id="s01" src="assets/ui/01-patient.png" alt="" />
+        <img class="shot" id="s02" src="assets/ui/02-screening.png" alt="" />
+        <img class="shot" id="s03" src="assets/ui/03-results.png" alt="" />
+        <img class="shot" id="s04" src="assets/ui/04-open.png" alt="" />
+        <div id="tallWrap"><div id="tallInner"><img src="assets/ui/04-open-tall.png" alt="" /><div id="scan"></div><div id="tallMarks"></div></div></div>
+        <img class="shot" id="s05" src="assets/ui/05-panel-en.png" alt="" />
+        <img class="shot" id="s06" src="assets/ui/06-panel-es.png" alt="" />
+        <img class="shot" id="s07" src="assets/ui/07-panel-approved.png" alt="" />
+        <img class="shot" id="s08" src="assets/ui/08-panel-call.png" alt="" />
+        <div id="panelCrop"><img src="assets/ui/05-panel-en.png" alt="" /></div>
+        <div id="spinFix"><i id="spinI"></i></div>
+        <div id="marks"></div>
+      </div>
+      <div id="cursor"><div id="ripple"></div>
+        <svg id="arrow" viewBox="0 0 28 28" aria-hidden="true"><path d="M3 2 L3 22 L8.5 17 L12.5 25.5 L16 24 L12 15.8 L19.5 15.8 Z" fill="#fff" stroke="#16212c" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <div id="band" class="layer clip" data-start="15.4" data-duration="38.0" data-track-index="4"></div>
+  <div id="chipClip" class="layer clip" data-start="15.4" data-duration="38.0" data-track-index="5"><div id="chip">Synthetic patient data · no PHI</div></div>
+
+  <div id="co1" class="layer clip" data-start="16.9" data-duration="2.3" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">1</span>Run a match</div><div class="ctitle">From the patient's chart, in one click</div></div></div>
+  <div id="co2" class="layer clip" data-start="19.2" data-duration="3.3" data-track-index="6">
+    <div class="callout"><div class="eyebrow">Claude is screening<span class="tag">sped up</span></div><div class="ctitle"><span id="nScreened">0</span> of 54 trials checked</div></div></div>
+  <div id="co3" class="layer clip" data-start="22.6" data-duration="5.0" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">2</span>Ranked possible fits</div><div class="ctitle">7 possible fits for this patient</div><div class="csub" id="co3sub">47 ruled out, each with a reason</div></div></div>
+  <div id="co4" class="layer clip" data-start="28.3" data-duration="5.0" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">3</span>Evidence</div><div class="ctitle">Every criterion checked against the record</div></div></div>
+  <div id="co5" class="layer clip" data-start="33.4" data-duration="6.4" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">3</span>Unknown stays unknown</div><div class="ctitle">Missing facts become questions, never a pass</div></div></div>
+  <div id="co6" class="layer clip" data-start="40.9" data-duration="5.0" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">4</span>Explain to patient</div><div class="ctitle">The study, in English or Spanish</div></div></div>
+  <div id="co7" class="layer clip" data-start="45.9" data-duration="2.2" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">4</span>Explain to patient</div><div class="ctitle">Nothing plays until you approve</div></div></div>
+  <div id="co8" class="layer clip" data-start="48.1" data-duration="5.0" data-track-index="6">
+    <div class="callout"><div class="eyebrow"><span class="n">4</span>Explain to patient</div><div class="ctitle">Questions answered only from the trial record</div></div></div>
+
+  <!-- 7 · Trust -->
+  <section id="trust" class="layer clip" data-start="53.2" data-duration="5.9" data-track-index="7">
+    <div id="trustBox">
+      <div class="tEyebrow" id="tEyebrow">Built around clinical judgment</div>
+      <div class="cards">
+        <div class="card" id="c1"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#6fb3ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+          <h3>A screening aid</h3><p>Shows possible fits. The study team decides eligibility.</p></div>
+        <div class="card" id="c2"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#f0b429" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17h.01"/></svg></div>
+          <h3>Unknowns stay unknown</h3><p>What the chart doesn't say becomes a question for the patient.</p></div>
+        <div class="card" id="c3"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3fb26a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h3>You approve first</h3><p>Nothing plays for the patient until you approve the script.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · End card -->
+  <section id="end" class="layer clip" data-start="59.0" data-duration="7.0" data-track-index="8">
+    <div id="endBox">
+      <div class="wordmark" id="endWord"><div class="wm endWm">Triright</div><div class="wmSuffix">· Trial Match</div></div>
+      <div class="endLine"><span class="a" id="endA">Claude reads the criteria.</span><span class="b" id="endB">Your clinicians decide.</span></div>
+      <div class="fine" id="fine"><span>Screening aid only. Final eligibility is determined by the study team.</span>
+        <span>Demo with synthetic patients · Trial records from ClinicalTrials.gov, Oct 8, 2026</span></div>
+    </div>
+    <div id="fadeOut" class="layer"></div>
+  </section>
+
+  <!-- Sound: narration (ElevenLabs, voice "Matilda"), music bed (ElevenLabs Music), UI sounds -->
+  <audio id="vo01" src="assets/audio/vo01.mp3" data-start="0.5" data-duration="3.808" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo02" src="assets/audio/vo02.mp3" data-start="4.85" data-duration="3.947" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo03" src="assets/audio/vo03.mp3" data-start="9.2" data-duration="1.44" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo04" src="assets/audio/vo04.mp3" data-start="11.4" data-duration="3.901" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo05" src="assets/audio/vo05.mp3" data-start="16.3" data-duration="5.759" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo06" src="assets/audio/vo06.mp3" data-start="22.7" data-duration="4.505" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo07" src="assets/audio/vo07.mp3" data-start="27.9" data-duration="4.505" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo08" src="assets/audio/vo08.mp3" data-start="33.0" data-duration="6.223" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo09" src="assets/audio/vo09.mp3" data-start="40.0" data-duration="7.152" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo10" src="assets/audio/vo10.mp3" data-start="47.8" data-duration="5.108" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo11" src="assets/audio/vo11.mp3" data-start="53.7" data-duration="4.737" data-track-index="20" data-volume="1"></audio>
+  <audio id="vo12" src="assets/audio/vo12.mp3" data-start="59.3" data-duration="4.319" data-track-index="20" data-volume="1"></audio>
+  <audio id="music" src="assets/audio/music.mp3" data-start="2.0" data-duration="64" data-track-index="21" data-volume="1"
+    data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0},{"t":1.4,"v":0.17},{"t":8.6,"v":0.17},{"t":8.9,"v":0.3},{"t":9.3,"v":0.17},{"t":56.5,"v":0.17},{"t":56.8,"v":0.3},{"t":57.2,"v":0.2},{"t":61.6,"v":0.2},{"t":62.0,"v":0.34},{"t":64,"v":0.34}]}]}'></audio>
+  <audio id="sfxW1" src="assets/audio/sfx-whoosh.mp3" data-start="0.2" data-duration="1.0" data-track-index="22" data-volume="0.3"></audio>
+  <audio id="sfxW2" src="assets/audio/sfx-whoosh.mp3" data-start="10.75" data-duration="1.0" data-track-index="22" data-volume="0.4"></audio>
+  <audio id="sfxW3" src="assets/audio/sfx-whoosh.mp3" data-start="13.9" data-duration="1.0" data-track-index="22" data-volume="0.35"></audio>
+  <audio id="sfxW4" src="assets/audio/sfx-whoosh.mp3" data-start="52.95" data-duration="1.0" data-track-index="22" data-volume="0.4"></audio>
+  <audio id="sfxW5" src="assets/audio/sfx-whoosh.mp3" data-start="58.75" data-duration="1.0" data-track-index="22" data-volume="0.35"></audio>
+  <audio id="sfxC1" src="assets/audio/sfx-click.mp3" data-start="16.85" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxC2" src="assets/audio/sfx-click.mp3" data-start="18.95" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxC3" src="assets/audio/sfx-click.mp3" data-start="27.95" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxC4" src="assets/audio/sfx-click.mp3" data-start="40.45" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxC5" src="assets/audio/sfx-click.mp3" data-start="42.3" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxC6" src="assets/audio/sfx-click.mp3" data-start="45.95" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxC7" src="assets/audio/sfx-click.mp3" data-start="48.1" data-duration="0.48" data-track-index="23" data-volume="0.55"></audio>
+  <audio id="sfxChime" src="assets/audio/sfx-chime.mp3" data-start="46.05" data-duration="1.2" data-track-index="24" data-volume="0.4"></audio>
+  <audio id="sfxT1" src="assets/audio/sfx-tick.mp3" data-start="22.5" data-duration="0.48" data-track-index="24" data-volume="0.3"></audio>
+</div>
+
+<script>
+const DATA = /*DATA*/ {"rects":{"00-schedule":{"table":{"x":265,"y":180.953125,"w":1160,"h":1149.53125},"tabs":{"x":0,"y":33.1875,"w":1440,"h":28.796875},"match":{"x":421.734375,"y":4,"w":137.765625,"h":24.1875}},"01-patient":{"run":{"x":264,"y":167.96875,"w":129.8125,"h":30.1875},"banner":{"x":264,"y":75.984375,"w":1162,"h":81.984375},"count":{"x":264,"y":167.96875,"w":1162,"h":30.1875},"list":{"x":0,"y":61.984375,"w":250,"h":815.625},"active":{"x":0,"y":428.546875,"w":249,"h":49.984375},"main":{"x":250,"y":61.984375,"w":1190,"h":815.625},"note":{"x":264,"y":208.15625,"w":1162,"h":30.796875}},"02-screening":{"count":{"x":264,"y":167.96875,"w":1162,"h":18.1875},"spin":{"x":261.8039245605469,"y":169.77267456054688,"w":16.39215087890625,"h":16.39215087890625}},"03-results":{"table":{"x":264,"y":204.15625,"w":1162,"h":640.59375},"head":{"x":265,"y":205.15625,"w":1160,"h":29.296875},"count":{"x":264,"y":167.96875,"w":1162,"h":26.1875},"ruled":{"x":1013.78125,"y":167.96875,"w":165.84375,"h":26.1875},"pill0":{"x":797.59375,"y":243.953125,"w":124.828125,"h":16},"title0":{"x":380,"y":241.953125,"w":397.59375,"h":18.1875},"row0":{"x":265,"y":234.453125,"w":1160,"h":66.78125},"row1":{"x":265,"y":301.234375,"w":1160,"h":101.765625},"row2":{"x":265,"y":403,"w":1160,"h":66.78125},"row3":{"x":265,"y":469.78125,"w":1160,"h":101.765625},"row4":{"x":265,"y":571.546875,"w":1160,"h":103.15625},"row5":{"x":265,"y":674.703125,"w":1160,"h":101.765625},"row6":{"x":265,"y":776.46875,"w":1160,"h":66.78125}},"04-open":{"detail":{"x":265,"y":301.234375,"w":1160,"h":1270.140625},"actions":{"x":277,"y":313.734375,"w":1136,"h":40.1875},"voice":{"x":286,"y":319.734375,"w":201.546875,"h":28.1875},"why":{"x":852,"y":365.921875,"w":561,"h":1192.953125},"crit":{"x":852,"y":471.859375,"w":561,"h":946.09375},"row0":{"x":265,"y":234.453125,"w":1160,"h":66.78125}},"04-open-tall":{"detail":{"x":265,"y":301.234375,"w":1160,"h":1270.140625},"actions":{"x":277,"y":313.734375,"w":1136,"h":40.1875},"voice":{"x":286,"y":319.734375,"w":201.546875,"h":28.1875},"why":{"x":852,"y":365.921875,"w":561,"h":1192.953125},"crit":{"x":852,"y":471.859375,"w":561,"h":946.09375},"row0":{"x":265,"y":234.453125,"w":1160,"h":66.78125},"crit0":{"x":852,"y":471.859375,"w":561,"h":58.09375},"crit1":{"x":852,"y":529.953125,"w":561,"h":58.59375},"crit2":{"x":852,"y":588.546875,"w":561,"h":75.390625},"crit3":{"x":852,"y":663.9375,"w":561,"h":58.59375},"crit4":{"x":852,"y":722.53125,"w":561,"h":58.59375},"crit5":{"x":852,"y":781.125,"w":561,"h":58.59375},"crit6":{"x":852,"y":839.71875,"w":561,"h":75.390625},"crit7":{"x":852,"y":915.109375,"w":561,"h":58.59375},"crit8":{"x":852,"y":973.703125,"w":561,"h":58.59375},"crit9":{"x":852,"y":1032.296875,"w":561,"h":58.59375},"crit10":{"x":852,"y":1090.890625,"w":561,"h":58.59375},"crit11":{"x":852,"y":1149.484375,"w":561,"h":58.59375},"crit12":{"x":852,"y":1208.078125,"w":561,"h":58.59375},"crit13":{"x":852,"y":1266.671875,"w":561,"h":75.390625},"crit14":{"x":852,"y":1342.0625,"w":561,"h":75.390625},"confirm":{"x":852,"y":1447.75,"w":561,"h":109.125},"confirmHead":{"x":852,"y":1427.953125,"w":561,"h":16.796875}},"05-panel-en":{"panel":{"x":900,"y":0,"w":540,"h":900},"head":{"x":901,"y":0,"w":539,"h":74.1875},"lang":{"x":901,"y":74.1875,"w":539,"h":37.796875},"es":{"x":1093.546875,"y":81.1875,"w":69.90625,"h":22.796875},"en":{"x":1026.53125,"y":81.1875,"w":67.015625,"h":22.796875},"text":{"x":924,"y":240.5625,"w":493,"h":190},"approve":{"x":924,"y":463.359375,"w":126.953125,"h":30.1875},"step1":{"x":913,"y":121.984375,"w":515,"h":405.359375},"step2":{"x":913,"y":535.34375,"w":515,"h":32.1875},"step4":{"x":913,"y":615.71875,"w":515,"h":32.1875},"step5":{"x":913,"y":655.90625,"w":515,"h":32.1875},"voice":{"x":286,"y":319.734375,"w":201.546875,"h":28.1875}},"06-panel-es":{"panel":{"x":900,"y":0,"w":540,"h":900},"head":{"x":901,"y":0,"w":539,"h":74.1875},"lang":{"x":901,"y":74.1875,"w":539,"h":37.796875},"es":{"x":1091.34375,"y":81.1875,"w":72.1875,"h":22.796875},"en":{"x":1026.53125,"y":81.1875,"w":64.8125,"h":22.796875},"text":{"x":924,"y":240.5625,"w":493,"h":190},"approve":{"x":924,"y":463.359375,"w":126.953125,"h":30.1875},"step1":{"x":913,"y":121.984375,"w":515,"h":405.359375},"step2":{"x":913,"y":535.34375,"w":515,"h":32.1875},"step4":{"x":913,"y":615.71875,"w":515,"h":32.1875},"step5":{"x":913,"y":655.90625,"w":515,"h":32.1875},"voice":{"x":286,"y":319.734375,"w":201.546875,"h":28.1875}},"07-panel-approved":{"panel":{"x":900,"y":0,"w":540,"h":900},"head":{"x":901,"y":0,"w":539,"h":74.1875},"lang":{"x":901,"y":74.1875,"w":539,"h":37.796875},"es":{"x":1091.34375,"y":81.1875,"w":72.1875,"h":22.796875},"en":{"x":1026.53125,"y":81.1875,"w":64.8125,"h":22.796875},"text":{"x":0,"y":0,"w":0,"h":0},"approve":{"x":0,"y":0,"w":0,"h":0},"step1":{"x":913,"y":121.984375,"w":515,"h":32.1875},"step2":{"x":913,"y":162.171875,"w":515,"h":83.375},"step4":{"x":913,"y":293.734375,"w":515,"h":32.1875},"step5":{"x":913,"y":333.921875,"w":515,"h":32.1875},"voice":{"x":286,"y":319.734375,"w":227.0625,"h":28.1875},"play":{"x":924,"y":204.359375,"w":129.46875,"h":30.1875}},"08-panel-call":{"panel":{"x":900,"y":0,"w":540,"h":900},"head":{"x":901,"y":0,"w":539,"h":74.1875},"lang":{"x":901,"y":74.1875,"w":539,"h":37.796875},"es":{"x":1091.34375,"y":81.1875,"w":72.1875,"h":22.796875},"en":{"x":1026.53125,"y":81.1875,"w":64.8125,"h":22.796875},"text":{"x":0,"y":0,"w":0,"h":0},"approve":{"x":0,"y":0,"w":0,"h":0},"step1":{"x":913,"y":121.984375,"w":515,"h":32.1875},"step2":{"x":913,"y":162.171875,"w":515,"h":83.375},"step4":{"x":913,"y":293.734375,"w":515,"h":99.1875},"step5":{"x":913,"y":400.921875,"w":515,"h":32.1875},"voice":{"x":286,"y":319.734375,"w":227.0625,"h":28.1875},"call":{"x":924,"y":335.921875,"w":493,"h":46},"orb":{"x":924,"y":335.921875,"w":46,"h":46},"start":{"x":1286.21875,"y":345.828125,"w":130.78125,"h":26.1875}}},"trials":[{"id":"REF-GAD-01","t":"Reference trial: Moderate GAD (team protocol from…"},{"id":"NCT06899165","t":"Psilocybin-Assisted Therapy for Intergenerational…"},{"id":"NCT07639606","t":"Mobile Cognitive Behavioral Therapy in Early…"},{"id":"NCT06904508","t":"Brain Activity Changes After Cognitive Behavioral…"},{"id":"NCT06004414","t":"SilverCloud as a School-Based Intervention for…"},{"id":"NCT06213324","t":"Neural Circuit Effects of Ketamine in Depression"},{"id":"NCT05699525","t":"Personalized Mobile Cognitive Behavioral Therapy…"},{"id":"NCT04663724","t":"Computer - Based Treatment for Social Anxiety…"},{"id":"NCT06752759","t":"Nebulized Ketamine for the Treatment of Major…"},{"id":"NCT06551090","t":"Prediction of Anxiety and Memory State"},{"id":"NCT06701903","t":"Study of ITI-1284 as Monotherapy Treatment in…"},{"id":"NCT05160129","t":"Connectomic Deep Brain Stimulation for Obsessive…"},{"id":"NCT06981598","t":"Prevention of Psychological Health Problems Via…"},{"id":"NCT05833555","t":"Harlem Strong Mental Health Coalition"},{"id":"NCT06305741","t":"A Study of an Anxiety Intervention for…"},{"id":"NCT07065240","t":"A Study to Evaluate the Efficacy and Safety of…"},{"id":"NCT06129903","t":"Study Assessing the Effects of Early Psychiatric…"},{"id":"NCT07717385","t":"Sleep More, Stress Less: 90-Day Trial of Neuralli…"},{"id":"NCT06793488","t":"Anxiety During Abstinence in AUD"},{"id":"NCT07845695","t":"Preoperative Music Intervention for Anxiety in Hip…"},{"id":"NCT07218250","t":"A Study of a One-Time Counseling Session to Help…"},{"id":"NCT07518953","t":"Effect of Music on Pain and Anxiety During Nail…"},{"id":"NCT07278505","t":"Study of Cannabidiol and Neuroimaging on Stress"},{"id":"NCT06199570","t":"Support for Cancer Patients Awaiting News"},{"id":"NCT05466851","t":"An Exploratory Study Examining Biopsychosocial…"},{"id":"NCT05734313","t":"Telemedicine-Delivered Unified Protocol for…"},{"id":"NCT06480383","t":"Study of ITI-1284 as an Adjunctive Treatment in…"},{"id":"NCT06689878","t":"Mobile Cognitive Behavioral Therapy for Stroke"},{"id":"NCT02773082","t":"DBS for Obsessive-Compulsive Disorder"},{"id":"NCT05215353","t":"A Study Comparing Music Therapy and Cognitive…"},{"id":"NCT07767903","t":"A Trial of the Efficacy and Safety of a Fixed Dose…"},{"id":"NCT07323784","t":"A Study of NTX-1472 in Social Anxiety Disorder"},{"id":"NCT07002034","t":"RE104 Safety and Efficacy Study in Adjustment…"},{"id":"NCT07143357","t":"Mind-body Resilience Program for Cardiac Arrest…"},{"id":"NCT07489651","t":"RE104 Safety and Efficacy Study in Generalized…"},{"id":"NCT05897619","t":"Feasibility and Acceptability of a Novel Cognitive…"},{"id":"NCT07340281","t":"Biomarkers for Exercise"},{"id":"NCT05754151","t":"Mobile CBT for Middle Aged and Older Adults"},{"id":"NCT07094451","t":"Virtual Reality for Pain Control in US-Guided…"},{"id":"NCT05800925","t":"Triage Survey for Psychiatry Research Eligibility"},{"id":"NCT07124780","t":"Helping Adults With Obsessive-Compulsive Disorder…"},{"id":"NCT07759128","t":"A Trial of the Efficacy and Safety of Fixed Doses…"},{"id":"NCT07807865","t":"A Study to Asses Safety and Tolerability of…"},{"id":"NCT06846320","t":"Study to Assess Adverse Events and Change in…"},{"id":"NCT07845422","t":"A Study of Music Therapy for Anxiety in People…"},{"id":"NCT07478393","t":"Readiness and Progress in Emotion Regulation Therapy"},{"id":"NCT05779761","t":"Brief Interventions for Coping with Distress"},{"id":"NCT07011901","t":"Precision Analytic Research Methods in OCD"},{"id":"NCT07799493","t":"Caplyta Versus Placebo for Adults With Social…"},{"id":"NCT07218055","t":"Assessment of Music Experiences in Navigating…"},{"id":"NCT05240924","t":"ERP to Improve Functioning in Veterans With OCD"},{"id":"NCT07188467","t":"Testing Adapted Self-Help Plus (SH+) for Stress…"},{"id":"NCT07252947","t":"Stress and Anxiety Effects on Valuation"},{"id":"NCT04685486","t":"Virtual Reality for Pain Management in Burn Patients"}],"nCriteria":769,"lines":["Age 18 to 65 inclusive (registry: 18 Years to 65 Years, sex: ALL)","Active substance use disorder within 6 months","Can give written informed consent and comply with study procedures","Agrees to protocol lifestyle restrictions and study requirements","Acute, severe, or unstable medical illness, including severe renal…","First-degree relative with bipolar disorder (Study MD interview)","Positive toxicology not explained by prescribed or approved…","Can use iPhone/iPad independently or with caregiver help (own…","Significant deficits in reciprocal social behavior: parent-report…","RCT: enrolled in 9th through 11th grades","Able to comply with study requirements as determined by the PI","Able to comply with study requirements as determined by the PI","Positive urine drug screen at screening, except cannabis","Positive urine drug screen at screening, except cannabis","History of neurologic disorder that may affect the neural systems of…","Score of at least 50 on the Liebowitz Social Anxiety Scale…","Current or past organic mental disorder, seizure disorder, epilepsy,…","Diagnosis of moderate to severe MDD, confirmed by SCID-5","Pregnant or breastfeeding","Known or suspected Temporal Lobe Epilepsy","Current Anxiety disorder, Major Depressive Disorder, or Bipolar…","CGI-S score ≥ 4 at Screening and Baseline","Imminent danger to self or others per Investigator assessment","Failed an adequate trial of ≥1 of the above antidepressants plus an…","Neurological disorder or significant brain pathology…","Lacks capacity for proper device use and maintenance, per research…","PHQ-4 Total Score ≥3, moderate risk for depression","Caregiver: named by the OAC as their primary informal (unpaid)…","Male or female aged 18 to 65 years, inclusive; willing, able, and…","Schizophrenia, schizoaffective, or other psychotic disorder","Clinically significant risk of suicide or harm to self or others","Age 18 years or older (no upper limit), any sex, able to provide…","Severe or unstable mood disorder, acute psychiatric symptoms, or…","AUDP: Seeking treatment for AUD","Both arms: Currently pregnant, attempting pregnancy, or nursing","AUDP: Abstinent for > 7 days at screening","Hearing impairment precluding music listening","English fluency per self-report ('How well do you speak English?');…","Able to read and understand English","PSS greater than or equal to 14 and/or STAI trait greater than or…","Pregnant or breastfeeding","ECOG performance status of 0 to 2","Unable to complete study activities per oncology provider's judgment…","One or more seizures without clear, resolved etiology, or current…","Anxiety or depressive mood disorder as per structured diagnostic…","Male or female, ≥ 18 years of age (no upper age limit)","MADRS total score > 18 at Screening or Baseline","Stroke that occurred 1 month or more prior to study initiation","History of a bipolar or psychotic disorder","Hoarding is not the primary subclassification","Capable of giving informed consent","Willing to follow all study procedures, including randomization to…","Group MT sub-study: same as I-2 to I-6 and I-8, but English-speaking…","Advanced sub-study: plan to initiate or change anxiety medications…","Substance use disorder (excluding nicotine/caffeine) within 12…","English speaker","Receiving daily psychotropics within 4 weeks of Screening","Normal cognitive function","Known sensitivity/intolerance to study intervention or potential…","Caregiver is a cardiac arrest survivor","Has used or will need prohibited medications or therapies","Current substance use disorder","Current major depressive disorder (past is allowed)","Controls only: current psychiatric condition assessed by the MINI","Intent or plan to attempt suicide","History of clinically significant illness that, in the…","If on psychiatric medication: stable dose for at least 6 weeks and…","BMI between 18 and 40 kg/m^2 (inclusive)","Significant suicide risk (e.g., recent suicidal behavior/ideation…","De-novo: BMI 19-40 kg/m^2, inclusive","Roll-over: any other condition that study participation could make…","Currently on protocol-specified ADT for GAD at adequate dose (per…","HADS anxiety subscale score of 8 or higher","Receipt of music therapy within the past six months","Meets DSM-5 criteria for at least one current psychological disorder","Currently living in New York City","Cardiac conditions, diagnosed hyperhidrosis, TBI, or other…","Healthy controls: lifetime history of certain psychiatric disorders…","CGI-S score of 4 or greater at Screening and Baseline","Systolic BP ≥165 and/or diastolic BP ≥95 at Screening and Baseline","Fluoxetine within 28 days of Baseline","Age 18 Years to no max; Sex: ALL","Age 18 years or older (no upper limit)","Speaks, reads, and writes English fluently (both groups)"]} /*END DATA*/;
+
+/* ---------- geometry: captured UI px (1440x900 viewport) -> window -> stage ---------- */
+const K = 1600 / 1440, WX = 160, WY = 40, WW = 1600, WH = 1000;
+const R = (shot, name) => DATA.rects[shot][name];
+const inWin = (r, pad = 0) => ({ left: r.x * K - pad, top: r.y * K - pad, width: r.w * K + 2 * pad, height: r.h * K + 2 * pad });
+const pt = (r, ax = 0.5, ay = 0.5) => ({ x: WX + (r.x + r.w * ax) * K, y: WY + (r.y + r.h * ay) * K });
+const css = { x: (v) => WX + v * K, y: (v) => WY + v * K };
+
+/* ---------- build the hook's tiles and criteria stream from the snapshot ---------- */
+const tilesEl = document.getElementById("tiles");
+DATA.trials.forEach((t) => {
+  const d = document.createElement("div");
+  d.className = "tile";
+  d.innerHTML = `<b data-layout-allow-overlap>${t.id}</b><span data-layout-allow-overlap>${t.t.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</span>`;
+  tilesEl.append(d);
+});
+const linesEl = document.getElementById("lines");
+DATA.lines.concat(DATA.lines).forEach((l) => { const p = document.createElement("p"); p.textContent = l; p.setAttribute("data-layout-allow-overlap", ""); linesEl.append(p); });
+const wm = document.getElementById("wm");
+"Triright".split("").forEach((c) => { const s = document.createElement("span"); s.textContent = c; wm.append(s); });
+
+/* marks drawn over the captured UI, in window coordinates */
+const marksEl = document.getElementById("marks"), tallMarks = document.getElementById("tallMarks");
+function mark(parent, id, r, kind, pad = 4) {
+  const d = document.createElement("div");
+  d.id = id; d.className = "mark " + kind;
+  Object.assign(d.style, Object.fromEntries(Object.entries(inWin(r, pad)).map(([k, v]) => [k, v + "px"])));
+  parent.append(d);
+  return "#" + id;
+}
+const res = DATA.rects["03-results"], tall = DATA.rects["04-open-tall"];
+const pills = [0, 1, 2, 3, 4, 5, 6].map((i) => mark(marksEl, "pill" + i, { x: res.pill0.x, y: res["row" + i].y + (res.pill0.y - res.row0.y), w: res.pill0.w, h: res.pill0.h }, "amber", 5));
+const ruledMark = mark(marksEl, "ruledMark", res.ruled, "blue", 5);
+const approvedMark = mark(marksEl, "approvedMark", R("07-panel-approved", "step1"), "green", 3);
+const UNKNOWN = [1, 2, 13];  // I-2, I-3, E-10: the record doesn't say
+const unknownMarks = UNKNOWN.map((i) => mark(tallMarks, "unk" + i, tall["crit" + i], "amber", 2));
+const confirmMark = mark(tallMarks, "confirmMark", { x: tall.confirmHead.x, y: tall.confirmHead.y, w: tall.confirm.w, h: tall.confirm.y + tall.confirm.h - tall.confirmHead.y }, "amber", 10);
+const okDots = [0, 3, 4, 5, 6].map((i) => {
+  const r = tall["crit" + i], d = document.createElement("div");
+  d.className = "dot"; d.id = "ok" + i;
+  d.style.left = (r.x + 12) * K - 15 + "px"; d.style.top = (r.y + 13) * K - 15 + "px";
+  tallMarks.append(d);
+  return "#ok" + i;
+});
+const scan = document.getElementById("scan");
+Object.assign(scan.style, { left: tall.crit0.x * K - 6 + "px", width: tall.crit0.w * K + 12 + "px", top: tall.crit0.y * K + "px", height: tall.crit0.h * K + "px" });
+gsap.set("#scan", { transformOrigin: "50% 0%" });
+const spin = R("02-screening", "spin"), spinFix = document.getElementById("spinFix");
+Object.assign(spinFix.style, { left: (spin.x - 1) * K + "px", top: (spin.y - 1) * K + "px", width: (spin.w + 2) * K + "px", height: (spin.h + 2) * K + "px" });
+const orb = R("08-panel-call", "orb");
+["ring1", "ring2"].forEach((id) => {
+  const d = document.createElement("div");
+  d.className = "ring"; d.id = id;
+  Object.assign(d.style, { left: orb.x * K + "px", top: orb.y * K + "px", width: orb.w * K + "px", height: orb.h * K + "px" });
+  marksEl.append(d);
+});
+
+/* ---------- timeline ---------- */
+const tl = gsap.timeline({ paused: true });
+const E = { io: "power2.inOut", out: "power3.out", soft: "sine.inOut" };
+
+/* camera: center a stage point at scale s, never showing past the window edges when zoomed in */
+function camTo(t, s, p, dur = 1.2, ease = E.io) {
+  const clamp = (v, a, b) => Math.min(Math.max(v, Math.min(a, b)), Math.max(a, b));
+  const x = clamp(960 - s * p.x, -s * WX, 1920 - s * (WX + WW));
+  const y = clamp(520 - s * p.y, -s * WY, 1080 - s * (WY + WH));
+  tl.to("#rig", { x, y, scale: s, duration: dur, ease }, t);
+}
+const curTo = (t, p, dur = 0.7) => tl.to("#cursor", { x: p.x, y: p.y, duration: dur, ease: "power3.inOut" }, t);
+function click(t) {
+  tl.to("#arrow", { scale: 0.8, duration: 0.07, yoyo: true, repeat: 1, ease: "power1.out", transformOrigin: "4px 3px" }, t);
+  tl.set("#ripple", { scale: 0.2, opacity: 0.8 }, t);
+  tl.to("#ripple", { scale: 1.5, opacity: 0, duration: 0.5, ease: "power2.out" }, t + 0.001);
+}
+const show = (t, sel, dur = 0.25) => tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: dur, ease: "none" }, t);
+const pop = (t, sel) => tl.fromTo(sel, { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+const fadeOut = (t, sel, dur = 0.3) => tl.to(sel, { opacity: 0, duration: dur, ease: "none" }, t);
+function callout(id, t, dur) {  // rises in, holds, fades
+  const c = `#${id} .callout`;
+  tl.fromTo(c, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: E.out }, t);
+  tl.to(c, { opacity: 0, duration: 0.3, ease: "none" }, t + dur - 0.3);
+}
+function count(sel, from, to, t, dur) {
+  const o = { v: from };
+  tl.to(o, { v: to, duration: dur, ease: "power2.out", onUpdate: () => { document.querySelector(sel).textContent = Math.round(o.v); } }, t);
+}
+
+/* initial state */
+gsap.set(".tile", { opacity: 0, scale: 0.9 });
+gsap.set("#linesWrap", { opacity: 0 });
+gsap.set(["#st54", "#st769", "#st1"], { opacity: 0 });
+gsap.set("#hookIn", { opacity: 1, scale: 1 });
+gsap.set("#wm span", { opacity: 0, y: 60 });
+gsap.set(["#wmSuffix", "#tagline"], { opacity: 0 });
+gsap.set("#titleBox", { opacity: 1, y: 0 });
+gsap.set("#rig", { x: 0, y: 0, scale: 1, transformOrigin: "0 0" });
+gsap.set("#win", { opacity: 1 });
+gsap.set(["#s01", "#s02", "#s03", "#s04", "#tallWrap", "#s05", "#s06", "#s07", "#s08", "#panelCrop", "#spinFix"], { opacity: 0 });
+gsap.set("#marks .mark, #tallMarks .mark, .dot, .ring, #scan", { opacity: 0 });
+gsap.set("#cursor", { x: 1560, y: 980, opacity: 0 });
+gsap.set("#ripple", { opacity: 0 });
+gsap.set("#chip", { opacity: 0 });
+gsap.set("#band", { opacity: 0 });
+gsap.set(["#tEyebrow", "#c1", "#c2", "#c3"], { opacity: 0, y: 40 });
+gsap.set(["#endWord", "#endA", "#endB", "#fine"], { opacity: 0, y: 30 });
+gsap.set("#fadeOut", { opacity: 0 });
+gsap.set("#glow", { opacity: 0.6, scale: 1 });
+
+/* 1 · hook (VO 0.5–10.6) */
+tl.to("#glow", { opacity: 1, scale: 1.08, duration: 10, ease: E.soft }, 0);
+const order = DATA.trials.map((_, i) => i).sort((a, b) => {  // tiles land from the center outward
+  const d = (i) => Math.hypot((i % 9) - 4, Math.floor(i / 9) - 2.5);
+  return d(a) - d(b);
+});
+order.forEach((i, k) => tl.to(`.tile:nth-child(${i + 1})`, { opacity: 1, scale: 1, duration: 0.4, ease: E.out }, 0.45 + k * 0.03));
+tl.fromTo("#st54", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.5, ease: E.out }, 0.45);
+count("#n54", 0, 54, 0.45, 1.1);
+tl.to("#st54", { opacity: 0, y: -40, duration: 0.35, ease: "power2.in" }, 5.55);
+tl.to(".tile", { opacity: 0.16, duration: 0.6, ease: "none" }, 5.2);
+tl.to("#linesWrap", { opacity: 0.55, duration: 0.8, ease: "none" }, 5.3);
+tl.fromTo("#lines", { y: 40 }, { y: -900, duration: 5.2, ease: "none" }, 5.0);
+tl.fromTo("#st769", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E.out }, 5.75);
+count("#n769", 54, DATA.nCriteria, 5.85, 1.3);
+tl.to("#st769", { opacity: 0, scale: 0.9, duration: 0.3, ease: "power2.in" }, 9.35);
+tl.to([".tile", "#linesWrap"], { opacity: 0, duration: 0.5, ease: "none" }, 9.3);
+tl.fromTo("#st1", { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.5, ease: E.out }, 9.68);
+tl.to("#hookIn", { opacity: 0, scale: 1.12, duration: 0.5, ease: "power2.in" }, 10.75);
+
+/* 2 · title (VO 11.4–15.3) */
+tl.to("#wm span", { opacity: 1, y: 0, duration: 0.6, stagger: 0.045, ease: E.out }, 11.45);
+tl.fromTo("#wmSuffix", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.6, ease: E.out }, 12.05);
+tl.fromTo("#tagline", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 12.6);
+tl.to("#titleBox", { opacity: 0, y: -260, duration: 0.9, ease: "power2.in" }, 14.4);
+
+/* 3 · the window rises into place, then: run a match (VO 16.3–22.1) */
+tl.fromTo("#win", { y: 820, rotationX: 32, scale: 0.86, transformPerspective: 2400, transformOrigin: "50% 100%" },
+  { y: 0, rotationX: 0, scale: 1, duration: 1.7, ease: "power3.out" }, 13.9);
+tl.to("#band", { opacity: 1, duration: 0.6, ease: "none" }, 15.5);
+tl.fromTo("#chip", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.5, ease: E.out }, 15.6);
+const navMatch = pt(R("00-schedule", "match"), 0.5, 0.6);
+tl.to("#cursor", { opacity: 1, duration: 0.2 }, 15.7);
+curTo(15.75, navMatch, 1.0);
+click(16.85);
+show(16.9, "#s01", 0.2);
+camTo(17.1, 1.38, { x: css.x(470), y: css.y(360) }, 1.5);
+curTo(17.6, pt(R("01-patient", "run"), 0.45, 0.6), 1.2);
+click(18.95);
+tl.set("#s02", { opacity: 1 }, 19.0);
+tl.set("#spinFix", { opacity: 1 }, 19.0);
+tl.fromTo("#spinI", { rotation: 0 }, { rotation: 360 * 5, duration: 3.4, ease: "none" }, 19.0);
+camTo(19.0, 1.45, { x: css.x(500), y: css.y(330) }, 3.4, E.soft);
+curTo(19.3, pt(R("01-patient", "run"), 1.6, 2.2), 1.0);
+callout("co1", 16.9, 2.3);
+callout("co2", 19.2, 3.3);
+count("#nScreened", 0, 54, 19.4, 2.9);
+
+/* 4 · ranked results (VO 22.7–27.2) */
+tl.set("#spinFix", { opacity: 0 }, 22.45);
+tl.set("#s03", { opacity: 1, clipPath: `inset(0px 0px ${WH - res.count.y * K}px 0px)` }, 22.45);
+[res.count, res.head, ...[0, 1, 2, 3, 4, 5, 6].map((i) => res["row" + i])].forEach((r, i) =>
+  tl.to("#s03", { clipPath: `inset(0px 0px ${Math.max(0, WH - (r.y + r.h) * K)}px 0px)`, duration: 0.1, ease: "power2.out" }, 22.5 + i * 0.1));
+tl.to("#s03", { clipPath: "inset(0px 0px 0px 0px)", duration: 0.2, ease: "none" }, 23.45);
+camTo(22.5, 1.12, { x: css.x(res.table.x + res.table.w / 2), y: css.y(res.table.y + res.table.h / 2 - 40) }, 1.1);
+curTo(22.6, { x: css.x(1300), y: css.y(880) }, 0.9);
+pills.forEach((p, i) => pop(24.0 + i * 0.12, p));
+tl.to(pills, { opacity: 0, duration: 0.3 }, 25.5);
+pop(25.6, ruledMark);
+callout("co3", 22.6, 5.0);
+tl.fromTo("#co3sub", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 25.6);
+tl.to(ruledMark, { opacity: 0, duration: 0.3 }, 27.2);
+
+/* 5 · evidence for every criterion (VO 27.9–39.2) */
+curTo(27.2, pt(res.title0, 0.3, 0.55), 0.7);
+click(27.95);
+const open = DATA.rects["04-open"];
+tl.set("#s04", { opacity: 1, clipPath: `inset(${(open.row0.y) * K}px 0px ${WH - (open.row0.y + open.row0.h) * K}px 0px)` }, 28.0);
+tl.to("#s04", { clipPath: `inset(${open.row0.y * K}px 0px 0px 0px)`, duration: 0.35, ease: E.out }, 28.0);
+tl.set("#s04", { clipPath: "inset(0px 0px 0px 0px)" }, 28.4);
+curTo(28.2, { x: css.x(820), y: css.y(1000) }, 0.9);
+const whyFocus = { x: css.x(open.why.x + open.why.w / 2), y: css.y(open.why.y + 270) };
+camTo(28.3, 1.72, whyFocus, 1.3);
+tl.set("#tallWrap", { opacity: 1 }, 29.7);
+gsap.set("#tallInner", { y: 0 });
+tl.set("#scan", { opacity: 1 }, 29.75);
+[0, 1, 2, 3, 4, 5, 6].forEach((i, k) => {
+  const r = tall["crit" + i];
+  tl.to("#scan", { y: (r.y - tall.crit0.y) * K, scaleY: r.h / tall.crit0.h, duration: 0.28, ease: E.io }, 29.8 + k * 0.42);
+  if (UNKNOWN.includes(i)) pop(29.95 + k * 0.42, "#unk" + i);
+  else pop(29.95 + k * 0.42, "#ok" + i);
+});
+tl.to("#scan", { opacity: 0, duration: 0.3 }, 32.7);
+tl.to(okDots, { opacity: 0, duration: 0.4 }, 32.8);
+tl.to("#tallInner", { y: -975, duration: 3.2, ease: E.io }, 33.1);
+pop(35.3, "#unk13");
+pop(37.0, confirmMark);
+callout("co4", 28.3, 5.0);
+callout("co5", 33.4, 6.4);
+
+/* 6 · explain to patient (VO 40.0–52.9) */
+tl.to("#tallInner", { y: 0, duration: 0.7, ease: E.io }, 39.3);
+tl.to("#tallMarks .mark", { opacity: 0, duration: 0.3 }, 39.2);
+tl.set("#tallWrap", { opacity: 0 }, 40.05);
+camTo(39.35, 1.3, { x: css.x(900), y: css.y(330) }, 0.9);
+const voiceBtn = pt(open.voice, 0.4, 0.6);
+curTo(39.5, voiceBtn, 0.8);
+click(40.45);
+tl.set("#panelCrop", { opacity: 1 }, 40.5);
+tl.fromTo("#panelCrop", { x: 620 }, { x: 0, duration: 0.5, ease: "power3.out" }, 40.5);
+tl.set("#s05", { opacity: 1 }, 41.05);
+tl.set("#panelCrop", { opacity: 0 }, 41.1);
+const pen = DATA.rects["05-panel-en"];
+camTo(41.0, 1.55, { x: css.x(pen.panel.x + pen.panel.w / 2), y: css.y(300) }, 1.0);
+curTo(41.2, pt(pen.es, 0.45, 0.6), 0.9);
+click(42.3);
+show(42.33, "#s06", 0.18);
+curTo(43.6, pt(pen.approve, 0.4, 0.6), 1.2);
+click(45.95);
+show(46.0, "#s07", 0.25);
+pop(46.3, approvedMark);
+tl.to(approvedMark, { opacity: 0, duration: 0.3 }, 47.6);
+const pap = DATA.rects["07-panel-approved"], pcall = DATA.rects["08-panel-call"];
+curTo(47.2, pt(pap.step4, 0.25, 0.5), 0.8);
+click(48.1);
+show(48.15, "#s08", 0.2);
+camTo(48.1, 1.75, { x: css.x(pcall.call.x + pcall.call.w / 2), y: css.y(pcall.call.y + 10) }, 1.0);
+curTo(48.5, { x: css.x(pcall.start.x + 60), y: css.y(pcall.start.y + 70) }, 0.8);
+["#ring1", "#ring2"].forEach((r, i) =>
+  tl.fromTo(r, { opacity: 0.7, scale: 1 }, { opacity: 0, scale: 1.9, duration: 1.1, ease: "power1.out", repeat: 3, immediateRender: false }, 48.6 + i * 0.55));
+callout("co6", 40.9, 5.0);
+callout("co7", 45.9, 2.2);
+callout("co8", 48.1, 5.0);
+
+/* 7 · trust (VO 53.7–58.4) */
+tl.to("#cursor", { opacity: 0, duration: 0.2 }, 52.7);
+tl.to("#rig", { scale: 0.62, x: 365, y: 210, duration: 0.8, ease: "power2.in" }, 52.85);
+tl.to("#win", { opacity: 0, duration: 0.5, ease: "none" }, 53.15);
+tl.to(["#band", "#chip"], { opacity: 0, duration: 0.4 }, 52.9);
+tl.to("#tEyebrow", { opacity: 1, y: 0, duration: 0.5, ease: E.out }, 53.5);
+tl.to("#c1", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 53.8);
+tl.to("#c2", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 55.4);
+tl.to("#c3", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 56.3);
+tl.to(["#tEyebrow", "#c1", "#c2", "#c3"], { opacity: 0, y: -30, duration: 0.45, ease: "power2.in", stagger: 0.04 }, 58.55);
+
+/* 8 · end card (VO 59.3–63.6) */
+tl.to("#endWord", { opacity: 1, y: 0, duration: 0.7, ease: E.out }, 59.25);
+tl.to("#endA", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 60.15);
+tl.to("#endB", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 61.95);
+tl.to("#fine", { opacity: 1, y: 0, duration: 0.8, ease: E.out }, 62.9);
+tl.to("#fadeOut", { opacity: 1, duration: 0.8, ease: "none" }, 65.15);
+
+window.__timelines["main"] = tl;
+</script>
+</body>
+</html>

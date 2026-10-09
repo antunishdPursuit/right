@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Triright Trial Match Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Layout: a fixed 1920x1080 stage scaled to fit the screen. A camera layer pans and zooms over a faithful
+     ClinicView window; captions, the title card and the closing card sit above it. One 15-second loop.
+     Every frame is a pure function of time (seek(t)), so the same page plays live and renders to video. */
+  :root {
+    /* The film around the product: one committed dark look, taken from the EHR's own chrome blue. */
+    --ink: #0c2236;
+    --ink-2: #16405f;
+    --paper: #ffffff;
+    --mist: #a9c2d8;
+    --signal: #6fb3ea;
+    --display: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    --ehr-font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+
+    /* EHR tokens, copied from app/static/index.html (light theme) so the window matches the live product. */
+    --chrome: #2b5f8a; --chrome-dark: #1d4566; --chrome-light: #d9e6f2; --chrome-top: #3a76a8;
+    --on-chrome: #ffffff; --tab-idle: #8fb0cc;
+    --bg: #eef1f4; --panel: #ffffff; --border: #c3ccd5; --divider: #e6eaee;
+    --text: #1f2a35; --muted: #5b6875; --accent: #0a6ebd; --hover: #f2f6fa;
+    --storyboard: #f6f8fa; --btn: #f4f6f8; --btn-hover: #e7edf2; --section-head: #edf2f7; --focus: #9cc7ea;
+    --warn-bg: #fff4d6; --warn-border: #e2b740; --warn-text: #7a5a00;
+    --ok: #2e7d32; --ok-bg: #e3f1e4; --ok-text: #1f5e23;
+    --neutral-bg: #eceff2; --neutral-text: #4a5663; --alert: #b3261e;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--ink); overflow: hidden; font-family: var(--display); }
+  button { font: inherit; color: inherit; }
+
+  /* ---------- Stage ---------- */
+  #stage {
+    position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden;
+    background: radial-gradient(1400px 900px at 70% 20%, var(--ink-2), var(--ink) 70%);
+  }
+  #cam { position: absolute; inset: 0; transform-origin: 0 0; }
+  .win {
+    position: absolute; left: 112px; top: 36px; width: 1696px; height: 920px;
+    border-radius: 12px; overflow: hidden; background: var(--bg);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 30px 80px rgba(0,0,0,.45);
+  }
+  .win-bar {
+    height: 34px; background: #e4e9ee; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--muted); font: 600 14px var(--ehr-font);
+  }
+  .win-bar i { width: 12px; height: 12px; border-radius: 50%; background: #c3ccd5; }
+  .win-bar span { margin: 0 auto; transform: translateX(-30px); }
+
+  .band {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 190px; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(12,34,54,0), rgba(12,34,54,.92) 62%, var(--ink));
+  }
+  .brand { position: absolute; left: 112px; bottom: 34px; color: var(--paper); font: 800 26px var(--display); letter-spacing: -.01em; }
+  .brand span { font-weight: 500; color: var(--mist); }
+  .chip {
+    position: absolute; right: 112px; bottom: 34px; color: var(--mist); font: 500 17px var(--display);
+    border: 1px solid rgba(169,194,216,.4); border-radius: 999px; padding: 6px 14px;
+  }
+  .caption {
+    position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px; white-space: nowrap;
+    color: var(--paper); font: 600 34px/1.2 var(--display); letter-spacing: -.01em;
+  }
+  .caption .n {
+    width: 42px; height: 42px; border-radius: 50%; background: var(--signal); color: var(--ink);
+    display: grid; place-items: center; font: 800 22px var(--display); flex: none;
+  }
+  .caption .tag {
+    font: 600 15px var(--display); color: var(--ink); background: var(--mist); border-radius: 4px;
+    padding: 3px 8px; text-transform: uppercase; letter-spacing: .08em;
+  }
+
+  .card {
+    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center;
+    padding: 0 200px; color: var(--paper);
+    background: radial-gradient(1200px 800px at 80% 10%, var(--ink-2), var(--ink) 70%);
+  }
+  .eyebrow { font: 700 20px var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--signal); }
+  .card h1 { margin: 18px 0 0; font: 800 120px/1 var(--display); letter-spacing: -.035em; }
+  .card h1 span { font-weight: 400; color: var(--mist); letter-spacing: -.02em; }
+  .card .lede { margin: 28px 0 0; font: 400 40px/1.3 var(--display); color: var(--mist); max-width: 31ch; text-wrap: balance; }
+  .card .lede b { color: var(--paper); font-weight: 600; }
+  .end h1 { font-size: 96px; }
+  .end .lede { font-size: 38px; max-width: none; margin-top: 22px; }
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; margin-top: 64px; max-width: 1520px; }
+  .pillar { border-top: 2px solid var(--signal); padding-top: 18px; }
+  .pillar h2 { margin: 0; font: 700 30px var(--display); color: var(--paper); }
+  .pillar p { margin: 10px 0 0; font: 400 24px/1.4 var(--display); color: var(--mist); }
+  .fine { margin-top: 56px; font: 500 19px var(--display); color: var(--mist); opacity: .8; }
+
+  .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.08); }
+  .progress span { display: block; height: 100%; width: 0; background: var(--signal); }
+
+  /* ---------- Cursor ---------- */
+  #cursor { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 60; pointer-events: none; }
+  #cursor svg { position: absolute; left: -3px; top: -2px; width: 28px; height: 28px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); transform-origin: 3px 2px; }
+  #ripple { position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 3px solid var(--accent); opacity: 0; }
+
+  /* ---------- ClinicView (copied from app/static/index.html and voice-panel.js) ---------- */
+  #app {
+    position: relative; zoom: 1.2; width: calc(1696px / 1.2); height: calc(886px / 1.2);
+    display: flex; flex-direction: column; overflow: hidden;
+    font: 13px/1.4 var(--ehr-font); color: var(--text); background: var(--bg);
+  }
+  .appbar {
+    background: linear-gradient(var(--chrome-top), var(--chrome)); color: var(--on-chrome);
+    display: flex; align-items: center; gap: 14px; padding: 4px 10px; border-bottom: 1px solid var(--chrome-dark);
+  }
+  .appbar .logo { font-weight: 700; letter-spacing: .5px; padding-right: 12px; border-right: 1px solid rgba(255,255,255,.3); }
+  .appbar button { background: none; border: 0; color: var(--on-chrome); padding: 3px 6px; border-radius: 3px; }
+  .appbar button.on { background: rgba(255,255,255,.15); }
+  .appbar .spacer { flex: 1; }
+  .appbar .user { opacity: .9; white-space: nowrap; }
+  .ws-tabs { background: var(--chrome-dark); display: flex; gap: 2px; padding: 4px 8px 0; }
+  .ws-tab { background: var(--tab-idle); color: var(--text); border: 0; padding: 4px 12px; border-radius: 4px 4px 0 0; font-size: 12px; white-space: nowrap; }
+  .ws-tab.active { background: var(--bg); font-weight: 600; }
+  .view { flex: 1; display: flex; min-height: 0; }
+  .disclaimer { text-align: center; font-size: 11px; color: var(--muted); background: var(--storyboard); border-top: 1px solid var(--border); padding: 3px 16px; }
+
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; line-height: 16px; padding: 0 6px; border-radius: 3px; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-text); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn-text); }
+  table.grid { width: 100%; border-collapse: collapse; background: var(--panel); font-variant-numeric: tabular-nums; }
+  .grid th { text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); background: var(--section-head); border-bottom: 1px solid var(--border); padding: 6px 10px; white-space: nowrap; }
+  .grid td { padding: 7px 10px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+  .grid .pt { font-weight: 600; color: var(--accent); }
+  .grid .sub, .sub { color: var(--muted); font-size: 12px; }
+  .nowrap { white-space: nowrap; }
+  a { color: var(--accent); }
+  .primary { font-weight: 600; background: var(--ok); color: var(--on-chrome); border: 1px solid var(--ok-text); border-radius: 3px; padding: 5px 16px; }
+  .tb-btn { background: var(--btn); border: 1px solid var(--border); border-radius: 3px; padding: 3px 9px; }
+  .pressed { filter: brightness(.86); }
+  .tb-btn.pressed { background: var(--btn-hover); }
+
+  .mt-list { width: 250px; flex: none; overflow: hidden; background: var(--storyboard); border-right: 1px solid var(--border); }
+  .mt-list h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 10px 12px 6px; }
+  .mt-pt { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--divider); padding: 7px 12px; color: var(--text); }
+  .mt-pt.active { background: var(--chrome-light); box-shadow: inset 3px 0 0 var(--accent); }
+  .mt-pt .nm { font-weight: 600; } .mt-pt .sub { color: var(--muted); font-size: 12px; }
+  .mt-main { flex: 1; overflow: hidden; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .mt-main > * { flex: none; }
+  .mt-banner { background: var(--panel); border: 1px solid var(--border); padding: 10px 12px; display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
+  .mt-banner .nm { font-size: 17px; font-weight: 700; color: var(--accent); }
+  .mt-banner .ctx { flex-basis: 100%; color: var(--muted); }
+  .mt-count { color: var(--muted); }
+  .mt-table { background: var(--panel); border: 1px solid var(--border); }
+  .mt-table > table { table-layout: fixed; width: 100%; }
+  .mt-table > table > thead th:nth-child(1) { width: 105px; } .mt-table > table > thead th:nth-child(2) { width: 36%; }
+  .mt-table > table > thead th:nth-child(3) { width: 150px; } .mt-table > table > thead th:nth-child(5) { width: 24px; }
+  .mt-table tr.open td, .mt-table tr.hover td { background: var(--chrome-light); }
+  .score { display: flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; }
+  .score .bar { width: 60px; height: 7px; background: var(--neutral-bg); border-radius: 4px; overflow: hidden; }
+  .score .bar span { display: block; height: 100%; background: var(--accent); }
+  .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mt-detail td { background: var(--storyboard) !important; padding: 12px !important; }
+  .mt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mt-cols h3 { font-size: 13px; margin: 0 0 6px; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 3px; }
+  .mt-cols h4 { font-size: 12px; margin: 10px 0 3px; }
+  .mt-cols ul { margin: 2px 0; padding-left: 18px; }
+  .mt-cols p { margin: 4px 0; }
+  .crit-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .crit-tbl td { padding: 4px 6px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+  .crit-tbl td:first-child { width: 18px; } .crit-tbl td:nth-child(2) { width: 36px; }
+  .ic-ok { color: var(--ok); font-weight: 700; } .ic-bad { color: var(--alert); font-weight: 700; } .ic-unk { color: var(--warn-text); font-weight: 700; }
+  .mt-note { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); padding: 6px 10px; font-size: 12px; }
+  .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; vertical-align: -2px; }
+
+  .vp { position: absolute; top: 0; right: 0; bottom: 0; width: 540px; z-index: 50; background: var(--bg);
+        border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,.18); display: flex; flex-direction: column; }
+  .vp-head { background: var(--panel); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .vp-head > div { flex: 1; min-width: 0; }
+  .vp-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); font-weight: 700; }
+  .vp-head h2 { font-size: 15px; margin: 2px 0; text-wrap: balance; }
+  .vp-sub { color: var(--muted); font-size: 12px; }
+  .vp-x { background: none; border: 0; font-size: 22px; line-height: 1; color: var(--muted); padding: 0 4px; }
+  .vp-lang { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+  .vp-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+  .vp-seg button { border: 0; background: var(--btn); padding: 4px 12px; color: var(--text); }
+  .vp-seg button.on { background: var(--accent); color: var(--panel); font-weight: 600; }
+  .vp-body { flex: 1; overflow: hidden; padding: 12px 14px 24px; display: flex; flex-direction: column; gap: 10px; }
+  .vp-step { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; }
+  .vp-step h3 { margin: 0; font-size: 13px; padding: 7px 10px; background: var(--section-head); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .vp-step h3 .n { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--panel); font-size: 11px; }
+  .vp-step h3 small { font-weight: 400; color: var(--muted); }
+  .vp-step .bd { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .vp-step.locked .bd { opacity: .5; }
+  .vp-step.locked h3::after { content: "Approve the script first"; margin-left: auto; font-size: 11px; font-weight: 600; color: var(--warn-text); }
+  .vp label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+  .vp .field { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 5px 7px; width: 100%; }
+  .vp .area { min-height: 190px; line-height: 1.45; white-space: pre-wrap; }
+  .vp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .vp-msg { font-size: 12px; color: var(--muted); }
+  .vp-msg.ok { color: var(--ok-text); font-weight: 600; }
+  .vp-sum { font-size: 12px; color: var(--muted); }
+
+  /* ---------- Player controls (live playback only) ---------- */
+  .controls {
+    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px;
+    transition: opacity .3s; opacity: 0;
+  }
+  .controls.show, .controls:focus-within { opacity: 1; }
+  .controls button {
+    background: rgba(12,34,54,.85); color: var(--paper); border: 1px solid rgba(169,194,216,.45);
+    border-radius: 6px; padding: 7px 12px; font: 600 13px var(--display); cursor: pointer;
+  }
+  .controls button:hover { border-color: var(--signal); }
+  .controls button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .controls .keys { align-self: center; color: var(--mist); font: 500 12px var(--display); margin-right: 6px; }
+  @media (max-width: 700px) { .controls .keys { display: none; } }
+</style>
+</head>
+<body>
+
+<div id="stage" aria-label="Triright Trial Match, 15-second product demo">
+  <div id="cam">
+    <div class="win">
+      <div class="win-bar"><i></i><i></i><i></i><span>ClinicView EHR</span></div>
+      <div id="app">
+        <header class="appbar">
+          <span class="logo">ClinicView EHR</span>
+          <button>Schedule</button><button>In Basket</button><button>Patient Lookup</button>
+          <button class="on"><b>Triright</b> · Trial Match</button>
+          <span class="spacer"></span>
+          <span class="user">Dr. R. Rivera, PsyD · Behavioral Health</span>
+        </header>
+        <nav class="ws-tabs"><button class="ws-tab">Dept Schedule</button><button class="ws-tab">Patient Lookup</button><button class="ws-tab active">Triright · Trial Match</button></nav>
+        <section class="view">
+          <aside class="mt-list" id="mtList"></aside>
+          <div class="mt-main" id="mtMain"></div>
+        </section>
+        <div class="disclaimer">Demo environment with synthetic patients. Not connected to a live EHR.</div>
+        <aside class="vp" id="vp" hidden></aside>
+      </div>
+    </div>
+    <div id="cursor">
+      <div id="ripple"></div>
+      <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 2 L3 22 L8.5 17 L12.5 25.5 L16 24 L12 15.8 L19.5 15.8 Z" fill="#fff" stroke="#1f2a35" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+
+  <div class="band"></div>
+  <div class="brand">Triright <span>· Trial Match</span></div>
+  <div class="chip">Synthetic patient data · no PHI</div>
+  <div class="caption" id="cap"><span class="n" id="capN">1</span><span id="capT"></span><span class="tag" id="capTag">sped up</span></div>
+
+  <section class="card title" id="titleCard">
+    <div class="eyebrow">Clinical trial matching inside the EHR</div>
+    <h1>Triright <span>· Trial Match</span></h1>
+    <p class="lede">Matches the patient in front of you to <b>recruiting trials nearby</b>, during the visit.</p>
+  </section>
+
+  <section class="card end" id="endCard">
+    <h1>Triright <span>· Trial Match</span></h1>
+    <p class="lede">Claude reads the criteria. <b>Your clinicians decide.</b></p>
+    <div class="pillars">
+      <div class="pillar"><h2>Screening aid</h2><p>Shows likely and possible fits. The study team decides eligibility.</p></div>
+      <div class="pillar"><h2>Unknowns stay unknown</h2><p>Facts the record doesn't state become questions to confirm with the patient.</p></div>
+      <div class="pillar"><h2>Clinician approval</h2><p>Nothing plays for the patient until you approve the script.</p></div>
+    </div>
+    <div class="fine">Synthetic patients · Trial records from ClinicalTrials.gov, Oct 8, 2026</div>
+  </section>
+
+  <div class="progress"><span id="prog"></span></div>
+</div>
+
+<div class="controls" id="controls">
+  <span class="keys">Space play/pause · R restart · F full screen</span>
+  <button id="btnPlay" type="button">Pause</button>
+  <button id="btnRestart" type="button">Restart</button>
+  <button id="btnFull" type="button">Full screen</button>
+</div>
+
+<script>
+const DATA = {"patients":[{"id":"P-001","name":"Dana Okafor","age":34,"sex":"F","gad7":8,"phq9":4},{"id":"P-002","name":"Marcus Bell","age":47,"sex":"M","gad7":12,"phq9":7},{"id":"P-003","name":"Priya Raman","age":29,"sex":"F","gad7":17,"phq9":11},{"id":"P-004","name":"Tomás Herrera","age":58,"sex":"M","gad7":7,"phq9":8},{"id":"P-005","name":"Lena Sørensen","age":41,"sex":"F","gad7":11,"phq9":9},{"id":"P-006","name":"Keisha Lewis","age":52,"sex":"F","gad7":13,"phq9":10},{"id":"P-007","name":"Owen Strand","age":26,"sex":"M","gad7":9,"phq9":3},{"id":"P-008","name":"Gwen Abernathy","age":63,"sex":"F","gad7":14,"phq9":6},{"id":"P-009","name":"Andre Mitchell","age":38,"sex":"M","gad7":10,"phq9":5},{"id":"P-010","name":"Rosalind Vance","age":45,"sex":"F","gad7":12,"phq9":4},{"id":"P-011","name":"Ben Whitaker","age":22,"sex":"M","gad7":11,"phq9":6},{"id":"P-012","name":"Ruth Kallman","age":71,"sex":"F","gad7":10,"phq9":7},{"id":"P-013","name":"Calvin Duvall","age":35,"sex":"M","gad7":13,"phq9":9},{"id":"P-014","name":"Imani Thompson","age":31,"sex":"F","gad7":15,"phq9":8},{"id":"P-015","name":"Silas Porter","age":54,"sex":"M","gad7":11,"phq9":5},{"id":"P-016","name":"Nadia Feld","age":27,"sex":"F","gad7":16,"phq9":6},{"id":"P-017","name":"Ezra Calloway","age":49,"sex":"M","gad7":15,"phq9":10},{"id":"P-018","name":"Beatriz Solano","age":36,"sex":"F","gad7":14,"phq9":9},{"id":"P-019","name":"Hector Quintana","age":44,"sex":"M","gad7":9,"phq9":7},{"id":"P-020","name":"Mabel Thorne","age":68,"sex":"F","gad7":6,"phq9":9},{"id":"P-021","name":"Julian Ashby","age":33,"sex":"M","gad7":10,"phq9":10},{"id":"P-022","name":"Grace Mulcahy","age":19,"sex":"F","gad7":12,"phq9":8},{"id":"P-023","name":"Samuel Okonkwo","age":60,"sex":"M","gad7":8,"phq9":8},{"id":"P-024","name":"Tessa Brennan","age":39,"sex":"F","gad7":18,"phq9":12}],"patient":{"id":"P-016","name":"Nadia Feld","age":27,"sex":"F","gad7":16,"phq9":6,"situation":"Freelance work is unstable. Worried about bills and client losses.","meds":""},"nTrials":54,"nRuled":47,"rows":[{"trial":{"nctId":"NCT07252947","title":"Stress and Anxiety Effects on Valuation","phase":"NA","sponsor":"NYU Langone Health","site":"NYU Langone Health, New York (3.2 mi)","nSites":1,"minAge":"18 Years","maxAge":"65 Years","sex":"ALL","enrollment":200,"interventions":["Socially Evaluated Cold Pressor Task (SECPT)","Non-Stressful Control Task"]},"result":{"status":"VERIFY","match_score":78,"summary":"27-year-old woman with about 1 year of GAD symptoms (GAD-7 16), no psychotropic medications, and no recorded medical or psychiatric exclusions. She looks like a good Aim 4 candidate, but English fluency, consent capacity, a formal GAD diagnosis, a C-SSRS score, and absence of current MDD still need to be confirmed.","criteria":[{"id":"I-1","result":"MET","evidence":"Age 27"},{"id":"I-2","result":"UNKNOWN","evidence":"English fluency not documented"},{"id":"I-3","result":"UNKNOWN","evidence":"Willingness/ability to consent not documented"},{"id":"I-4","result":"MET","evidence":"Flagged severe-threshold GAD; GAD-7 16, symptoms ~1 year"},{"id":"E-1","result":"NOT_MET","evidence":"Applies to Aims 1-3 only; patient is an Aim 4 (GAD) candidate"},{"id":"E-2","result":"NOT_MET","evidence":"No hypertension or heart condition in record"},{"id":"E-3","result":"NOT_MET","evidence":"No diabetes, food allergy, metabolic or eating disorder in record"},{"id":"E-4","result":"NOT_MET","evidence":"No medications listed; no corticosteroids/beta-blockers"},{"id":"E-5","result":"NOT_MET","evidence":"Pregnancy not recorded"},{"id":"E-6","result":"NOT_MET","evidence":"No bipolar or psychotic disorder in record"},{"id":"E-7","result":"NOT_MET","evidence":"No substance use disorder in record"},{"id":"E-8","result":"NOT_MET","evidence":"No eating disorder in record"},{"id":"E-9","result":"NOT_MET","evidence":"PHQ-9 6 (mild); no MDD diagnosis recorded"},{"id":"E-10","result":"UNKNOWN","evidence":"No C-SSRS score or suicidality assessment documented"},{"id":"E-11","result":"NOT_MET","evidence":"No psychotropic medications, so there is no dose instability"}],"open_checks":["Confirm English fluency (speaks, reads, writes)","Confirm willingness/ability to give informed consent and follow procedures","Confirm formal GAD diagnosis via structured clinical interview","Administer C-SSRS (exclude if score >=4)","Rule out current MDD given mild depressive symptoms (PHQ-9 6)","Confirm no pregnancy"]},"criteria":{"overview":"This study looks at how stress, anxiety, and negative affect change learning and decision-making, specifically reward adaptation and emotion prediction errors. It has two groups. Aims 1-3 enroll healthy adults with no neurologic or psychiatric history. Aim 4 enrolls adults with generalized anxiety disorder (GAD).","involves":"Learning and decision-making tasks run under stress, anxiety, or negative affect conditions. The record does not give the specific procedures, number of visits, duration, or whether a placebo is used.","inclusion":[{"id":"I-1","criterion":"Age 18-65 years (both groups; all sexes)","plain":"Confirm DOB: 18 to 65 years"},{"id":"I-2","criterion":"Speaks, reads, and writes English fluently (both groups)","plain":"Confirm fluent English"},{"id":"I-3","criterion":"Willing and able to follow study procedures and give informed consent (both groups)","plain":"Confirm capacity to consent and willingness to take part"},{"id":"I-4","criterion":"Aim 4 only: diagnosis of GAD","plain":"Check chart for a documented GAD diagnosis"}],"exclusion":[{"id":"E-1","criterion":"Aims 1-3 only: history of, or medication for, neurologic or psychiatric disease","plain":"Healthy-volunteer group: no neuro/psych diagnoses and no psychotropic meds"},{"id":"E-2","criterion":"High blood pressure or heart condition (both groups)","plain":"Check problem list for HTN or cardiac disease"},{"id":"E-3","criterion":"Diabetes, food allergies, metabolic disorders, or history of eating disorder (both groups)","plain":"Check for diabetes, food allergies, metabolic disorders, or any past eating disorder"},{"id":"E-4","criterion":"Use of corticosteroids or beta-blockers (both groups)","plain":"Check med list for steroids or beta-blockers"},{"id":"E-5","criterion":"Pregnancy (both groups)","plain":"Confirm not pregnant"},{"id":"E-6","criterion":"Aim 4: lifetime bipolar disorder or any psychotic disorder","plain":"Check for any history of bipolar or psychotic disorder"},{"id":"E-7","criterion":"Aim 4: substance use disorder in past 3 months","plain":"Check for SUD within the last 3 months"},{"id":"E-8","criterion":"Aim 4: eating disorder in past 6 months","plain":"Check for an eating disorder within the last 6 months"},{"id":"E-9","criterion":"Aim 4: current major depressive disorder (past MDD is allowed)","plain":"Rule out current MDD; past episodes are OK"},{"id":"E-10","criterion":"Aim 4: active suicidal ideation with plan and intent (score >=4 on the Columbia Suicide Severity Scale)","plain":"C-SSRS score must be below 4"},{"id":"E-11","criterion":"Aim 4: not on a stable dose of psychiatric medication for at least 4 weeks before the study","plain":"Confirm no psych med changes in the last 4 weeks"}]}},{"trial":{"nctId":"NCT07489651","title":"RE104 Safety and Efficacy Study in Generalized Anxiety Disorder","phase":"PHASE2","sponsor":"Reunion Neuroscience Inc","site":"NYU-H+C Clinical and Translational Science Institute, New York (3.2 mi)","nSites":1,"minAge":"18 Years","maxAge":"74 Years","sex":"ALL","enrollment":160,"interventions":["RE104 for Injection","Placebo"]},"result":{"status":"VERIFY","match_score":70,"summary":"This 27-year-old woman has had excessive worry, restlessness and tension for about 1 year, with a GAD-7 of 16. That fits GAD, and no exclusion clearly applies. Before enrollment, someone still needs to check suicide risk, family psychiatric history, pregnancy plans, whether her ongoing CBT app is allowed, and whether she is willing to take part."}},{"trial":{"nctId":"NCT05800925","title":"Triage Survey for Psychiatry Research Eligibility","phase":"N/A","sponsor":"Adams Clinical","site":"Adams Clinical, Harlem, New York (3.2 mi)","nSites":2,"minAge":"18 Years","maxAge":"","sex":"ALL","enrollment":20000,"interventions":["Survey"]},"result":{"status":"VERIFY","match_score":70,"summary":"Nadia Feld is a 27-year-old woman with about 1 year of moderate-to-severe GAD (GAD-7 16, PHQ-9 6). Her record shows nothing that rules her out, but consent, a C-SSRS suicide screen and whether any first-degree relative works at Adams Clinical still need to be documented."}},{"trial":{"nctId":"NCT07767903","title":"A Trial of the Efficacy and Safety of a Fixed Dose of SEP-363856 in Adults With Generalized Anxiety Disorder","phase":"PHASE3","sponsor":"Otsuka Pharmaceutical Development & Commercialization, Inc.","site":"Basil Clinical, Jamaica (10.5 mi)","nSites":1,"minAge":"18 Years","maxAge":"","sex":"ALL","enrollment":384,"interventions":["SEP-363856","Placebo"]},"result":{"status":"VERIFY","match_score":65,"summary":"This 27-year-old woman has had GAD symptoms for about a year (GAD-7 16) with only mild depressive symptoms (PHQ-9 6). She takes no psychotropic medications and nothing in her record excludes her. GAD has not been confirmed by MINI or a psychiatric evaluation, and BMI, labs, pregnancy test and her current CBT app use still need to be checked."}},{"trial":{"nctId":"NCT07807865","title":"A Study to Asses Safety and Tolerability of ITI-1284 Given Alone or as an Additional Treatment in Participants With Generalized Anxiety Disorder (GAD)","phase":"PHASE3","sponsor":"Intra-Cellular Therapies, Inc.","site":"SPRI Clinical Trials, LLC, Brooklyn (7.7 mi)","nSites":1,"minAge":"18 Years","maxAge":"","sex":"ALL","enrollment":900,"interventions":["ITI-1284"]},"result":{"status":"VERIFY","match_score":65,"summary":"This is a 27-year-old woman with about one year of GAD symptoms (GAD-7 16) who is not on any medications. She fits the de-novo cohort. Before she can be enrolled, someone needs to confirm GAD with SCID-5-CT, record her BMI and MADRS score, check whether her panic-like episodes point to a second anxiety disorder, and get her consent."}},{"trial":{"nctId":"NCT07759128","title":"A Trial of the Efficacy and Safety of Fixed Doses of SEP-363856 in Adults With Generalized Anxiety Disorder","phase":"PHASE3","sponsor":"Otsuka Pharmaceutical Development & Commercialization, Inc.","site":"Manhattan Behavioral Medicine PLLC, New York (3.2 mi)","nSites":1,"minAge":"18 Years","maxAge":"","sex":"ALL","enrollment":576,"interventions":["SEP-363856","Placebo"]},"result":{"status":"VERIFY","match_score":60,"summary":"Nadia is 27 and has had GAD symptoms for about a year (GAD-7 16, PHQ-9 6). She takes no psychotropic medications and shows no excluding diagnoses. Before enrollment, she still needs a MINI and psychiatric evaluation to confirm GAD, BMI, labs and exam, a pregnancy test and contraception check, and a suicide risk assessment (C-SSRS)."}},{"trial":{"nctId":"NCT07717385","title":"Sleep More, Stress Less: 90-Day Trial of Neuralli Mood","phase":"NA","sponsor":"Efforia, Inc","site":"Efforia - Decentralized United States Study, New York (3.2 mi)","nSites":1,"minAge":"18 Years","maxAge":"","sex":"ALL","enrollment":100,"interventions":["Neuralli Mood"]},"result":{"status":"VERIFY","match_score":55,"summary":"Nadia is 27 and has had stress and anxiety tied to her work for about a year, so she broadly fits the target group. However, her GAD-7 score of 16 is in the severe range, and a clinician needs to decide whether that counts under E-5 (severe psychiatric symptoms) before she can be enrolled."}}],"script":{"plain_title":"How stress and anxiety affect learning and choices","plain_title_es":"Cómo el estrés y la ansiedad afectan el aprendizaje y las decisiones","en":"This message is about a research study at NYU Langone Health in New York. The study looks at how stress and anxiety change the way people learn and make choices. For example, it looks at how people adjust to rewards. The study includes healthy adults and adults with generalized anxiety disorder, ages eighteen to sixty-five. If you take part, you would do learning and decision-making tasks. Some tasks are done under stress, and the study also uses a task that is not stressful, to compare. The study record does not say how many visits there are, how long it lasts, or about payment. The study team can tell you more. Joining is your choice. If you say no, your regular care will not change. Your doctor thinks you may qualify. But the study team makes the final decision after a screening. You can ask your doctor any questions now.","es":"Este mensaje es sobre un estudio de investigación en NYU Langone Health, en Nueva York. El estudio busca entender cómo el estrés y la ansiedad cambian la forma en que las personas aprenden y toman decisiones. Por ejemplo, observa cómo las personas se adaptan a las recompensas. En el estudio participan adultos sanos y adultos con trastorno de ansiedad generalizada, de dieciocho a sesenta y cinco años. Si usted participa, haría actividades de aprendizaje y de toma de decisiones. Algunas actividades se hacen bajo estrés, y el estudio también usa una actividad que no causa estrés, para poder comparar. La información del estudio no dice cuántas visitas hay, cuánto tiempo dura ni si hay algún pago. El equipo del estudio le puede dar más detalles. Participar es su decisión. Si dice que no, su atención médica de siempre no va a cambiar. Su médico cree que usted podría calificar. Pero el equipo del estudio toma la decisión final después de una evaluación. Puede hacerle a su médico cualquier pregunta ahora.","nKeyPoints":5}};
+
+/* ---------- Timeline (seconds) ---------- */
+const DUR = 10;  // the script below is timed in these units; WARP stretches it to the real running time
+// [real seconds, script seconds]: reading moments (results, criteria, the script, the closing card) get the most extra time.
+const WARP = [[0, 0], [1.6, 1.0], [3.3, 2.25], [5.0, 3.62], [7.6, 5.45], [10.6, 7.3], [12.9, 8.62], [15, DUR]];
+const REAL = WARP[WARP.length - 1][0];
+function warp(t) {
+  const i = Math.max(1, WARP.findIndex(k => k[0] >= t));
+  const [r0, s0] = WARP[i - 1], [r1, s1] = WARP[i];
+  return s0 + (s1 - s0) * clampUnit((t - r0) / (r1 - r0));
+}
+function clampUnit(x) { return Math.min(1, Math.max(0, x)); }
+const T = { titleOut: 0.78, titleGone: 1.08, run: 2.25, results: 3.62, open: 5.5, voice: 7.36, es: 7.9, approve: 8.29, endIn: 8.62, endFull: 8.92 };
+const CAPTIONS = [
+  [1.02, T.run, "Open the patient. Run trial match."],
+  [T.run, T.results, `Claude screens ${DATA.nTrials} recruiting trials near the clinic`, "sped up"],
+  [T.results, 5.45, `${DATA.rows.length} possible fits, ranked. ${DATA.nRuled} ruled out, with reasons.`],
+  [5.45, 7.3, "Evidence for every criterion. Unknowns flagged to confirm."],
+  [7.3, T.endIn, "Explain the study in English or Spanish, after you approve"],
+];
+const CLICKS = [  // [time, element clicked]
+  [T.run, "[data-run]"], [T.open - 0.02, 'tr[data-row="0"]'], [T.voice - 0.03, "[data-voice]"],
+  [T.es - 0.02, '[data-lang="es"]'], [T.approve - 0.02, '[data-vp="approve"]'],
+];
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const inOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const out = x => 1 - Math.pow(1 - x, 3);
+
+/* ---------- ClinicView markup (same templates as app/static/index.html) ---------- */
+const STATUS = { ELIGIBLE: '<span class="pill ok">Likely fit</span>', VERIFY: '<span class="pill warn">Possible fit · confirm</span>' };
+function listHTML() {
+  return `<h2>Synthetic patients (${DATA.patients.length})</h2>` + DATA.patients.map(p => `
+    <button class="mt-pt ${p.id === DATA.patient.id ? "active" : ""}" data-pid="${p.id}">
+      <div class="nm">${esc(p.name)}</div>
+      <div class="sub">${p.id} · ${p.age} ${p.sex} · GAD-7 ${p.gad7} · PHQ-9 ${p.phq9}</div>
+    </button>`).join("");
+}
+function mainHTML(key) {
+  const p = DATA.patient, rows = key === "rows" || key === "open" ? DATA.rows : null;
+  const count = rows
+    ? `<b>${rows.length}</b> of ${DATA.nTrials} recruiting trials in New York City may fit this patient. ${DATA.nRuled} ruled out. Click a trial to see its summary and the reasoning.
+       <button class="tb-btn">Show ${DATA.nRuled} ruled-out trials</button>`
+    : key === "busy"
+      ? `<span class="spin" id="spin"></span> Screening ${esc(p.name)} against ${DATA.nTrials} recruiting trials in New York City with Claude… <span id="mtElapsed">0s</span>`
+      : `<button class="primary" data-run>Run trial match</button> &nbsp;Screens this patient against ${DATA.nTrials} recruiting anxiety trials with a recruiting site within 15 miles of Midtown Manhattan.`;
+  return `
+    <div class="mt-banner"><span class="nm">${esc(p.name)}</span><span>${p.id}</span><span>${p.age} y.o. ${p.sex}</span>
+      <span>GAD-7 <b>${p.gad7}</b></span><span>PHQ-9 <b>${p.phq9}</b></span>
+      <span class="ctx">${esc(p.situation)} ${p.meds ? "· Meds: " + esc(p.meds) : ""}</span></div>
+    <div class="mt-count">${count}</div>
+    ${rows ? `<div class="mt-table"><table class="grid"><thead><tr><th>Match</th><th>Trial</th><th>Status</th><th>Why</th><th></th></tr></thead><tbody>
+      ${rows.map((r, i) => row(r, i, key === "open" && i === 0)).join("")}</tbody></table></div>` : ""}
+    <div class="mt-note">Screening aid only. Final eligibility is determined by the study team. Synthetic patients, no PHI.</div>`;
+}
+function row(r, i, open) {
+  const t = r.trial, x = r.result;
+  const tr = `<tr class="row ${open ? "open" : ""}" data-row="${i}">
+    <td><div class="score"><span class="bar"><span data-w="${x.match_score}"></span></span>${x.match_score}%</div></td>
+    <td><div class="pt">${esc(t.title)}</div><div class="sub"><a>${t.nctId}</a> · ${esc(t.phase)} · ${esc(t.sponsor)}</div><div class="sub">${esc(t.site || "")}${t.nSites > 1 ? ` · +${t.nSites - 1} more NYC sites` : ""}</div></td>
+    <td class="nowrap">${STATUS[x.status]}</td>
+    <td><div class="clamp2">${esc(x.summary)}</div></td><td>${open ? "▾" : "▸"}</td></tr>`;
+  return open ? tr + `<tr class="mt-detail"><td colspan="5">${detail(r)}</td></tr>` : tr;
+}
+function detail(r) {
+  const c = r.criteria, x = r.result, t = r.trial;
+  const text = Object.fromEntries([...c.inclusion, ...c.exclusion].map(k => [k.id, k.criterion]));
+  const icon = k => {
+    const bad = k.id.startsWith("E") ? k.result === "MET" : k.result === "NOT_MET";
+    return k.result === "UNKNOWN" ? '<span class="ic-unk">?</span>' : bad ? '<span class="ic-bad">✗</span>' : '<span class="ic-ok">✓</span>';
+  };
+  return `<div class="mt-cols">
+    <div><button class="primary" data-voice style="float:right">Explain to patient</button><h3>Trial summary</h3><p>${esc(c.overview)}</p>
+      ${t.interventions?.length ? `<p><b>Intervention:</b> ${esc(t.interventions.join(", "))}</p>` : ""}
+      ${c.involves ? `<p><b>What it involves:</b> ${esc(c.involves)}</p>` : ""}
+      <p><b>Nearest site:</b> ${esc(t.site || "-")}</p>
+      <p class="sub">Ages ${esc(t.minAge || "-")} to ${esc(t.maxAge || "no max")} · ${esc(t.sex)}${t.enrollment ? " · target enrollment " + t.enrollment : ""}</p>
+      <h4>Inclusion</h4><ul>${c.inclusion.map(k => `<li><b>${esc(k.id)}</b> ${esc(k.criterion)}</li>`).join("")}</ul>
+      <h4>Exclusion</h4><ul>${c.exclusion.map(k => `<li><b>${esc(k.id)}</b> ${esc(k.criterion)}</li>`).join("")}</ul></div>
+    <div><h3>Why this patient · ${x.match_score}%</h3><p>${esc(x.summary)}</p>
+      <table class="crit-tbl">${x.criteria.map(k => `<tr><td>${icon(k)}</td><td class="nowrap"><b>${esc(k.id)}</b></td><td>${esc(k.evidence)}<div class="sub">${esc(text[k.id] || "")}</div></td></tr>`).join("")}</table>
+      <div id="confirm"><h4>Confirm with patient</h4><ul>${x.open_checks.map(o => `<li>${esc(o)}</li>`).join("")}</ul></div></div></div>`;
+}
+function panelHTML(lang, approved) {
+  const s = DATA.script, L = lang === "es" ? "Spanish" : "English", t = DATA.rows[0].trial;
+  return `
+    <header class="vp-head"><div><div class="vp-eyebrow">Explain to patient</div><h2>${esc(t.title)}</h2>
+      <div class="vp-sub">${t.nctId} · Plays on this screen. Built from trial details only, never the patient record.</div></div>
+      <button class="vp-x" aria-label="Close">×</button></header>
+    <div class="vp-lang">Patient's language <span class="vp-seg"><button data-lang="en" class="${lang === "en" ? "on" : ""}">English</button><button data-lang="es" class="${lang === "es" ? "on" : ""}">Spanish</button></span></div>
+    <div class="vp-body">
+      <section class="vp-step"><h3><span class="n">1</span> Review the script <small>Claude drafts it. Nothing plays until you approve.</small></h3>
+        <div class="bd">
+          <label>Title <div class="field">${esc(lang === "es" ? s.plain_title_es : s.plain_title)}</div></label>
+          <label>What the patient will hear (${L}) <div class="field area">${esc(s[lang])}</div></label>
+          <div class="vp-sum">▸ Key points for the teach-back check (${s.nKeyPoints})</div>
+          <div class="vp-row"><button class="primary" data-vp="approve">${approved ? "Approved" : "Approve script"}</button><button class="tb-btn">Redraft</button>
+            <span class="vp-msg ${approved ? "ok" : ""}">${approved ? "Approved 2026-10-08 14:32. Edit to change it." : "Edits apply to both the audio and the agents once approved."}</span></div>
+        </div></section>
+      <section class="vp-step ${approved ? "" : "locked"}"><h3><span class="n">2</span> Play the summary <small>Stand-in doctor voice</small></h3>
+        <div class="bd"><div class="vp-row"><button class="primary">Play in ${L}</button></div></div></section>
+      <section class="vp-step ${approved ? "" : "locked"}"><h3><span class="n">3</span> Patient's questions <small>Voice agent answers only from the trial record</small></h3>
+        <div class="bd"><div class="vp-row"><button class="primary">Start conversation</button></div></div></section>
+    </div>`;
+}
+
+/* ---------- Content state at time t ---------- */
+const main = $("#mtMain"), list = $("#mtList"), vp = $("#vp"), cam = $("#cam"), stage = $("#stage");
+const S = { key: null, vpKey: null, scroll: { list: 0, s1: 0, s2: 0 } };
+list.innerHTML = listHTML();
+
+function mainScroll(t) {
+  const { s1, s2 } = S.scroll;
+  if (t < T.open + 0.1) return 0;
+  if (t < 6.1) return lerp(0, s1, inOut(prog(t, T.open + 0.1, 6.1)));
+  if (t < 6.95) return lerp(s1, s2, inOut(prog(t, 6.22, 6.95)));
+  return lerp(s2, s1, inOut(prog(t, 7.0, 7.2)));
+}
+function renderContent(t) {
+  const key = t < T.run + 0.06 ? "idle" : t < T.results ? "busy" : t < T.open ? "rows" : "open";
+  if (key !== S.key) { main.innerHTML = mainHTML(key); S.key = key; }
+  list.scrollTop = S.scroll.list;
+  if (key === "busy") {
+    $("#mtElapsed").textContent = Math.round(lerp(1, 19, prog(t, T.run, T.results))) + "s";
+    $("#spin").style.transform = `rotate(${t * 520}deg)`;
+  } else if (key !== "idle") {
+    main.querySelectorAll("tr.row").forEach((tr, i) => {
+      const a = T.results + 0.04 + i * 0.075, k = out(prog(t, a, a + 0.3));
+      tr.style.opacity = k;
+      tr.style.transform = `translateY(${(1 - k) * 12}px)`;
+      const bar = tr.querySelector("[data-w]");
+      bar.style.width = bar.dataset.w * out(prog(t, a + 0.1, a + 0.7)) + "%";
+      tr.classList.toggle("hover", i === 0 && t > 5.28 && t < T.open);
+    });
+    const d = main.querySelector(".mt-detail");
+    if (d) d.style.opacity = out(prog(t, T.open, T.open + 0.22));
+  }
+  main.scrollTop = mainScroll(t);
+
+  const vpKey = t < T.voice ? "" : `${t >= T.es ? "es" : "en"}${t >= T.approve ? "+" : ""}`;
+  if (vpKey !== S.vpKey) {
+    vp.hidden = !vpKey;
+    if (vpKey) vp.innerHTML = panelHTML(vpKey.slice(0, 2), vpKey.endsWith("+"));
+    S.vpKey = vpKey;
+  }
+  if (vpKey) vp.style.transform = `translateX(${(1 - out(prog(t, T.voice, T.voice + 0.28))) * 105}%)`;
+
+  document.querySelectorAll(".pressed").forEach(el => el.classList.remove("pressed"));
+  for (const [ct, sel] of CLICKS) if (t >= ct && t < ct + 0.16) $(sel)?.classList.add("pressed");
+}
+
+/* ---------- Measuring (camera-space coordinates, independent of zoom) ---------- */
+function at(sel, ax = .5, ay = .5) {
+  const el = typeof sel === "string" ? $(sel) : sel, r = el.getBoundingClientRect(), c = cam.getBoundingClientRect(), k = c.width / 1920;
+  return { x: (r.left + ax * r.width - c.left) / k, y: (r.top + ay * r.height - c.top) / k };
+}
+function offsetIn(box, el) {  // el's top inside a scroll box, in the box's own scroll units
+  const b = box.getBoundingClientRect(), k = b.height / box.offsetHeight;
+  return (el.getBoundingClientRect().top - b.top) / k + box.scrollTop;
+}
+const A = {};
+const WIN_RIGHT = 1808, WHY_S = 1.64, WHY_DY = 300, VOICE_S = 1.3;
+const rightAligned = s => WIN_RIGHT - 930 / s;  // focus x that puts the window's right edge near the frame's edge
+function measure() {
+  cam.style.transform = "none";
+  const active = list.querySelector(".mt-pt.active");
+  S.scroll.list = Math.max(0, offsetIn(list, active) - list.offsetHeight * 0.42);
+  renderContent(1.5);
+  A.run = at("[data-run]", .4, .62); A.banner = at(".mt-banner", 0, 0); A.main = at(main, 0, 0);
+  renderContent(5.0);
+  A.table = at(".mt-table", .5, .5); A.row0 = at('tr[data-row="0"] .pt', .22, .5);
+  renderContent(T.open + 0.05);
+  S.scroll.s1 = offsetIn(main, $('tr[data-row="0"]')) - 6;
+  const conf = $("#confirm");
+  // Scroll until the confirm list sits just above the caption band, given the zoomed camera over the criteria.
+  const viewBottom = (WHY_DY + (870 - 496) / WHY_S) / (at(main, 0, 1).y - at(main, 0, 0).y) * main.offsetHeight;
+  S.scroll.s2 = Math.min(main.scrollHeight - main.offsetHeight, offsetIn(main, conf) + conf.offsetHeight - viewBottom);
+  renderContent(6.15);
+  A.why = at(".mt-cols > div:nth-child(2)", .5, 0); A.left = at(".mt-cols > div:first-child", .55, 0);
+  renderContent(7.25);
+  A.voiceBtn = at("[data-voice]", .45, .6);
+  renderContent(7.8);
+  A.vp = at(vp, .5, 0); A.es = at('[data-lang="es"]', .45, .6);
+  renderContent(8.1);
+  A.approve = at('[data-vp="approve"]', .4, .6);
+  S.key = S.vpKey = null;
+}
+
+/* ---------- Camera, cursor and overlays ---------- */
+let CAM, CUR;
+function plan() {
+  const W = { x: 960, y: 496 };
+  const banner = { x: 112 + 930 / 1.4, y: A.banner.y + 200 };
+  const table = { x: 1010, y: 520 };
+  const why = { x: rightAligned(WHY_S), y: A.main.y + WHY_DY };
+  const voice = { x: rightAligned(VOICE_S), y: A.vp.y + 340 };
+  CAM = [  // [t, scale, focus]
+    [0, 0.93, W], [1.0, 1, W], [1.25, 1, W], [2.05, 1.4, banner], [3.4, 1.42, banner],
+    [4.0, 1.12, table], [5.25, 1.14, table], [5.95, WHY_S - 0.02, why], [6.95, WHY_S, why],
+    [7.3, 1.32, { x: rightAligned(1.32), y: A.main.y + 300 }], [7.72, VOICE_S, voice], [DUR, VOICE_S + 0.04, voice],
+  ];
+  const rest1 = { x: A.run.x + 230, y: A.run.y + 70 }, rest2 = { x: A.left.x, y: A.main.y + 420 };
+  CUR = [  // [t, point]
+    [1.0, { x: 1560, y: 900 }], [1.3, { x: 1560, y: 900 }], [2.12, A.run], [2.5, A.run], [3.3, rest1],
+    [4.75, rest1], [5.4, A.row0], [5.62, A.row0], [6.15, rest2], [7.02, rest2], [7.28, A.voiceBtn],
+    [7.5, A.voiceBtn], [7.84, A.es], [7.98, A.es], [8.24, A.approve], [DUR, A.approve],
+  ];
+}
+function keyed(keys, t, pick) {  // eased interpolation between keyframes
+  let i = keys.findIndex(k => k[0] > t);
+  if (i === -1) return pick(keys[keys.length - 1], keys[keys.length - 1], 0);
+  if (i === 0) return pick(keys[0], keys[0], 0);
+  const a = keys[i - 1], b = keys[i];
+  return pick(a, b, inOut(prog(t, a[0], b[0])));
+}
+const capEl = $("#cap"), capN = $("#capN"), capT = $("#capT"), capTag = $("#capTag"), cursor = $("#cursor");
+function renderFrame(t) {
+  renderContent(t);
+
+  const [s, fx, fy] = keyed(CAM, t, (a, b, k) => [lerp(a[1], b[1], k), lerp(a[2].x, b[2].x, k), lerp(a[2].y, b[2].y, k)]);
+  cam.style.transform = `translate(${960 - fx * s}px, ${496 - fy * s}px) scale(${s})`;
+
+  const [cx, cy] = keyed(CUR, t, (a, b, k) => [lerp(a[1].x, b[1].x, k), lerp(a[1].y, b[1].y, k)]);
+  cursor.style.transform = `translate(${cx}px, ${cy}px)`;
+  cursor.style.opacity = prog(t, 1.0, 1.2) * (1 - prog(t, 8.5, 8.66));
+  const click = CLICKS.map(c => t - c[0]).filter(d => d >= 0 && d < 0.45).pop();
+  const rip = $("#ripple");
+  rip.style.opacity = click === undefined ? 0 : 0.6 * (1 - click / 0.45);
+  rip.style.transform = `scale(${click === undefined ? 0.2 : 0.2 + out(click / 0.45)})`;
+  cursor.querySelector("svg").style.transform = `scale(${click !== undefined && click < 0.12 ? 0.86 : 1})`;
+
+  const ci = CAPTIONS.findIndex(c => t >= c[0] && t < c[1]);
+  if (ci === -1) capEl.style.opacity = 0;
+  else {
+    const [a, b, text, tag] = CAPTIONS[ci];
+    if (capT.textContent !== text) { capT.textContent = text; capN.textContent = ci + 1; capTag.hidden = !tag; }
+    const k = Math.min(out(prog(t, a, a + 0.16)), 1 - prog(t, b - 0.1, b));
+    capEl.style.opacity = k;
+    capEl.style.transform = `translateX(-50%) translateY(${(1 - out(prog(t, a, a + 0.2))) * 14}px)`;
+  }
+
+  const title = $("#titleCard");
+  title.style.opacity = 1 - prog(t, T.titleOut, T.titleGone);
+  title.hidden = t >= T.titleGone;
+  title.querySelectorAll(".eyebrow, h1, .lede").forEach((el, i) => {
+    const k = out(prog(t, 0.02 + i * 0.07, 0.3 + i * 0.07));
+    el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 16}px)`;
+  });
+  const end = $("#endCard");
+  end.hidden = t < T.endIn;
+  end.style.opacity = out(prog(t, T.endIn, T.endFull)) * (1 - prog(t, DUR - 0.12, DUR));
+  end.querySelectorAll("h1, .lede, .pillar, .fine").forEach((el, i) => {
+    const k = out(prog(t, T.endIn + 0.08 + i * 0.06, T.endIn + 0.36 + i * 0.06));
+    el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 16}px)`;
+  });
+}
+
+/* ---------- Playback ---------- */
+const params = new URLSearchParams(location.search);
+const capture = params.has("capture");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let playing = false, now = 0, t0 = 0;
+
+function fit() {
+  const g = capture ? 0 : 16, f = Math.min((innerWidth - 2 * g) / 1920, (innerHeight - 2 * g) / 1080);
+  stage.style.transform = `translate(${(innerWidth - 1920 * f) / 2}px, ${(innerHeight - 1080 * f) / 2}px) scale(${f})`;
+}
+function seek(t) { now = ((t % REAL) + REAL) % REAL; renderFrame(warp(now)); $("#prog").style.width = (now / REAL) * 100 + "%"; }
+function setPlaying(p) {
+  playing = p; t0 = performance.now() - now * 1000;
+  $("#btnPlay").textContent = p ? "Pause" : "Play";
+}
+function tick(ms) {
+  if (playing) seek((ms - t0) / 1000);
+  requestAnimationFrame(tick);
+}
+
+const controls = $("#controls");
+let hideTimer;
+function poke() { controls.classList.add("show"); clearTimeout(hideTimer); hideTimer = setTimeout(() => controls.classList.remove("show"), 2500); }
+async function toggleFull() { try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch {} }
+$("#btnPlay").onclick = () => setPlaying(!playing);
+$("#btnRestart").onclick = () => { seek(0); setPlaying(true); };
+$("#btnFull").onclick = toggleFull;
+addEventListener("pointermove", poke);
+addEventListener("keydown", e => {
+  if (e.target.closest?.("button") && (e.key === " " || e.key === "Enter")) return;
+  if (e.key === " ") { e.preventDefault(); setPlaying(!playing); poke(); }
+  else if (e.key === "r" || e.key === "R") { seek(0); setPlaying(true); }
+  else if (e.key === "f" || e.key === "F") toggleFull();
+});
+addEventListener("resize", fit);
+
+(async function start() {
+  fit();
+  try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]); } catch {}
+  measure(); plan();
+  window.__seek = seek;
+  window.__duration = REAL;
+  if (capture) { controls.hidden = true; seek(0); window.__ready = true; return; }
+  const still = parseFloat(params.get("t"));
+  if (!isNaN(still)) { seek(still); setPlaying(false); poke(); }
+  else if (reduced) { seek(9.1); setPlaying(false); poke(); }
+  else { seek(0); setPlaying(true); }
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

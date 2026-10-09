@@ -30,6 +30,10 @@
     {
       "source": "/screen",
       "destination": "/static/screen.html"
+    },
+    {
+      "source": "/demo",
+      "destination": "/static/demo.html"
     }
   ]
 }

@@ -68,6 +68,7 @@ Built in `app/voice/` (see `app/voice/README.md`). The patient listens on the do
 
 ## Delivery and evidence
 
+- [x] **Launch film (decided 2026-10-09):** 66 s, 16:9, voiceover + music, for hospital and clinic audiences. Built with HyperFrames in `demo/launch-film/` from 2x captures of the real UI (synthetic patient P-016, Oct 8 snapshot). Hook numbers are our own data: 54 recruiting trials near Midtown and 769 parsed eligibility criteria; no outside recruitment statistics. The MP4 is git-ignored (`renders/`); share it directly.
 - [ ] Get official rubric, submission rules, and deadline from hosts; record them in `EVENT_BRIEF.md`.
 - [ ] Record source and date for every public dataset or trial shown.
 - [ ] Measure at least one outcome against a rules/templates baseline and show an abstention or escalation case.

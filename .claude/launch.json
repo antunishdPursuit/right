@@ -1,0 +1,49 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "voice",
+      "runtimeExecutable": "app/voice/.venv/bin/uvicorn",
+      "runtimeArgs": [
+        "server:app",
+        "--port",
+        "8001",
+        "--app-dir",
+        "app/voice"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "app",
+      "runtimeExecutable": "app/voice/.venv/bin/python",
+      "runtimeArgs": [
+        "app/app.py"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "film-voice",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "VERCEL=1",
+        "app/voice/.venv/bin/uvicorn",
+        "server:app",
+        "--port",
+        "8011",
+        "--app-dir",
+        "app/voice"
+      ],
+      "port": 8011,
+      "autoPort": false
+    },
+    {
+      "name": "film-app",
+      "runtimeExecutable": "app/voice/.venv/bin/python",
+      "runtimeArgs": [
+        "demo/launch-film/tools/serve_snapshot.py"
+      ],
+      "port": 8010,
+      "autoPort": false
+    }
+  ]
+}

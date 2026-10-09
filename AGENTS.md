@@ -1,6 +1,6 @@
-# right
+# Triright
 
-right is Team 8's demo for Claude Build Day: Mental Health & Wellness (October 8, 2026, Track 2: Accelerate Clinical Trials). It is a "right · Trial Match" tab inside a mock EHR called ClinicView. A clinician picks a synthetic patient, runs a match against recruiting anxiety trials near Midtown Manhattan, reads the criterion-by-criterion reasoning, and can open a voice panel that explains one trial to the patient in English or Spanish.
+Triright is Team 8's demo for Claude Build Day: Mental Health & Wellness (October 8, 2026, Track 2: Accelerate Clinical Trials). It is a "Triright · Trial Match" tab inside a mock EHR called ClinicView. A clinician picks a synthetic patient, runs a match against recruiting anxiety trials near Midtown Manhattan, reads the criterion-by-criterion reasoning, and can open a voice panel that explains one trial to the patient in English or Spanish.
 
 The team has a two-hour build and a 2–3 minute live demo. A demo that works every time is worth more than another feature, so keep the main flow working after every change: select a patient, click "Run trial match", expand a trial, click "Explain to patient". The safety behavior in [Product rules](#product-rules) is part of what the demo shows, not something to work around.
 

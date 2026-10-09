@@ -21,7 +21,8 @@ Built in `app/voice/` (see `app/voice/README.md`). The patient listens on the do
 - [x] **A. Doctor's message dubbed:** the doctor records a short message; ElevenLabs dubbing turns it into Spanish in the doctor's own voice.
 - [x] **B. Trial Q&A agent:** the patient asks questions; the agent answers only from the trial record.
 - [x] **C. Teach-back check:** the agent asks the patient to explain the study back; Claude scores each key point for the doctor.
-- [ ] Test A–C end to end with real keys, then connect them to the right tab in `app/`.
+- [x] **Name (decided 2026-10-09):** the product is now Triright (was "right"). UI copy and docs use the new name; code identifiers such as `window.RightVoice` and `RIGHT_VOICE_URL` are unchanged.
+- [ ] Test A–C end to end with real keys, then connect them to the Triright tab in `app/`.
 - [ ] Make one finished dub before the demo and keep its project ID as a backup.
 - [ ] **Back burner, D:** voice pre-screening for the "confirm with patient" items.
 - [ ] **Lowest priority:** dictation with Scribe (doctor talks, note is drafted).

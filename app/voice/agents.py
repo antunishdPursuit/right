@@ -73,7 +73,7 @@ AGENTS = {
     "qa": {
         "env": "QA_AGENT_ID",
         "id": "agent_7001m4ex14sqfp9taxva3r9d2dgc",  # the team's agent; private, so the ID alone grants nothing
-        "name": "right: trial questions",
+        "name": "Triright: trial questions",
         "prompt": QA_PROMPT,
         "first": {
             "en": "Hi. I can answer questions about the study your doctor mentioned. What would you like to know?",
@@ -85,7 +85,7 @@ AGENTS = {
     "teachback": {
         "env": "TEACHBACK_AGENT_ID",
         "id": "agent_1601m4ex17b1e6zajq9mnjty1k5q",
-        "name": "right: teach-back check",
+        "name": "Triright: teach-back check",
         "prompt": TEACHBACK_PROMPT,
         "first": {
             "en": "Thanks for listening. To make sure we explained it clearly, could you tell me in your own words "
@@ -112,7 +112,7 @@ def config(kind, voice_id):
                                               "params": {"system_tool_type": "end_call"}}}}
     return {
         "name": a["name"],
-        "tags": ["right", "hackathon"],
+        "tags": ["triright", "hackathon"],
         "conversation_config": {
             "agent": {
                 "first_message": a["first"]["en"],

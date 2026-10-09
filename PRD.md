@@ -1,14 +1,14 @@
-# right: PRD
+# Triright: PRD
 
 Oct 8, 2026
 
 ## Summary
 
-right is a clinical trial matching app that lives in a tab inside Epic and tells a mental health clinician which recruiting anxiety trials their patient qualifies for, why, and how far away they are.
+Triright is a clinical trial matching app that lives in a tab inside Epic and tells a mental health clinician which recruiting anxiety trials their patient qualifies for, why, and how far away they are.
 
 - **Users:** psychiatrists, psychiatric NPs, psychologists, and licensed counselors. The patient is a secondary user through the voice note.
 - **Indication for MVP:** anxiety disorders (GAD, panic disorder, social anxiety disorder, unspecified anxiety).
-- **Two-part core:** (1) an agent extracts coded and free-text facts from the EHR chart, (2) a matching engine checks them against ClinicalTrials.gov eligibility criteria and shows explained matches in the right tab.
+- **Two-part core:** (1) an agent extracts coded and free-text facts from the EHR chart, (2) a matching engine checks them against ClinicalTrials.gov eligibility criteria and shows explained matches in the Triright tab.
 - **Optional modules:** wearable stress data (Oura, WHOOP) and an ElevenLabs voice note that explains the trial to the patient.
 - **MVP data:** 20 synthetic patients only. A healthcare provider manually reviews every match to measure precision.
 
@@ -22,14 +22,14 @@ One correction to the brief: the ClinicalTrials.gov API (v2) is public and needs
 - Show only trials with overall status RECRUITING and at least one recruiting site.
 - Explain every match criterion by criterion, with the chart evidence behind it.
 - Show distance to the nearest recruiting site and let the clinician sort and filter by it.
-- Prompt the clinician to have the conversation. right never contacts the patient on its own.
+- Prompt the clinician to have the conversation. Triright never contacts the patient on its own.
 
 **Non-goals for MVP**
 
 - No real patient data, no production Epic install.
 - No enrollment, consent, or referral submission to trial sites.
 - No conditions beyond anxiety disorders.
-- No automated eligibility determination. right screens; the study team decides.
+- No automated eligibility determination. Triright screens; the study team decides.
 
 **Success metrics**
 
@@ -44,10 +44,10 @@ One correction to the brief: the ClinicalTrials.gov API (v2) is public and needs
 
 ## Workflow in Epic
 
-The clinician never leaves the chart: right launches as a SMART on FHIR app embedded in an Epic activity tab, already pointed at the open patient.
+The clinician never leaves the chart: Triright launches as a SMART on FHIR app embedded in an Epic activity tab, already pointed at the open patient.
 
-1. Clinician opens a patient chart and clicks the **right** tab.
-2. Epic launches right with a launch token and the FHIR base URL. right completes the OAuth handshake with no separate login.
+1. Clinician opens a patient chart and clicks the **Triright** tab.
+2. Epic launches Triright with a launch token and the FHIR base URL. Triright completes the OAuth handshake with no separate login.
 3. The extraction agent pulls the chart over FHIR and builds a structured patient profile (Part 1).
 4. The matching engine queries ClinicalTrials.gov for recruiting anxiety trials near the patient and evaluates eligibility (Part 2).
 5. The tab shows ranked trial cards with the match explanation, distance, and items to confirm with the patient.
@@ -168,7 +168,7 @@ The `eligibilityCriteria` field is one block of text. An LLM splits it into indi
 
 Each match gets a 2 to 3 sentence summary plus the full criterion table. Example: "Matched because of active GAD (F41.1), GAD-7 of 16 on Sep 12, and 14 weeks on a stable sertraline dose. No exclusions found. Confirm with patient: alcohol use in the past 6 months."
 
-## The right tab
+## The Triright tab
 
 The tab is a ranked list of trial cards built to be read in under a minute between visits.
 
@@ -343,14 +343,14 @@ Before any matching runs, a psychiatrist or psychiatric NP reads all 20 charts a
 
 ## Evaluation
 
-A licensed mental health prescriber independently labels every match right shows for the 20 patients, and precision is the share they agree the patient is eligible for.
+A licensed mental health prescriber independently labels every match Triright shows for the 20 patients, and precision is the share they agree the patient is eligible for.
 
 **Protocol**
 
 1. Freeze the trial snapshot on one date so the tool and the reviewer see identical trial records.
-2. Run right on all 20 patients. Keep up to 5 matches per patient, so at most 100 patient-trial pairs.
-3. The reviewer gets each chart and each trial's full eligibility text, without right's explanation, and labels each pair: Eligible, Not eligible (which criterion), or Cannot tell from chart.
-4. The reviewer then sees right's explanation and rates it 1 to 5 for accuracy and usefulness.
+2. Run Triright on all 20 patients. Keep up to 5 matches per patient, so at most 100 patient-trial pairs.
+3. The reviewer gets each chart and each trial's full eligibility text, without Triright's explanation, and labels each pair: Eligible, Not eligible (which criterion), or Cannot tell from chart.
+4. The reviewer then sees Triright's explanation and rates it 1 to 5 for accuracy and usefulness.
 5. Disagreements are reviewed together and tagged by cause: extraction error, criterion parsing error, reasoning error, or chart ambiguity.
 
 **Metrics**
@@ -388,7 +388,7 @@ A licensed mental health prescriber independently labels every match right shows
 - Before real data: BAAs with the LLM provider and ElevenLabs, a security review, and the health system's app approval process.
 - Psychotherapy notes have extra HIPAA protection and substance use treatment records fall under 42 CFR Part 2. Plan to exclude both unless the site explicitly permits access.
 - Wearable data needs the patient's own consent and is stored separately from the chart.
-- Because right gives patient-specific output to clinicians, get a regulatory read on FDA clinical decision support criteria. Showing the basis for every match helps here.
+- Because Triright gives patient-specific output to clinicians, get a regulatory read on FDA clinical decision support criteria. Showing the basis for every match helps here.
 
 **Risks**
 
@@ -408,7 +408,7 @@ A licensed mental health prescriber independently labels every match right shows
 2. Weeks 3 to 4: 20 synthetic charts built, validated, clinician face-validity review done.
 3. Weeks 5 to 6: extraction agent, scored against answer keys.
 4. Weeks 7 to 8: trial sync, matching engine, distance.
-5. Weeks 9 to 10: right tab UI in a SMART sandbox, voice note, wearable module.
+5. Weeks 9 to 10: Triright tab UI in a SMART sandbox, voice note, wearable module.
 6. Weeks 11 to 12: clinician evaluation, error analysis, precision report.
 
 **Open questions**

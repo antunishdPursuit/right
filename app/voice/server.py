@@ -1,4 +1,4 @@
-"""right voice service: Claude trial script + ElevenLabs speech, dubbing, Q&A agent, and teach-back.
+"""Triright voice service: Claude trial script + ElevenLabs speech, dubbing, Q&A agent, and teach-back.
 
 Local:  from app/voice, .venv/bin/uvicorn server:app --port 8001   then open http://localhost:8001
 Vercel: app/api/voice.py serves this app under /voice on the same site as the trial match.
@@ -38,7 +38,7 @@ STORE_FILE = Path("/tmp/voice-cache.json") if ON_VERCEL else HERE / ".cache.json
 STORE = json.loads(STORE_FILE.read_text()) if STORE_FILE.exists() else {"trials": {}, "draft": {}, "approved": {}}
 AUDIO = {}  # (trial_id, language, text hash) -> mp3 bytes; replays don't re-bill ElevenLabs
 
-app = FastAPI(title="right voice")
+app = FastAPI(title="Triright voice")
 # The trial-match app in ../app runs on port 8000 and can call this service directly.
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
                    allow_methods=["*"], allow_headers=["*"])

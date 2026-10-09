@@ -1,10 +1,10 @@
-# right: system flow
+# Triright: system flow
 
-How a patient chart becomes a ranked, explained list of recruiting anxiety trials in the right tab. Full requirements are in [PRD.md](PRD.md).
+How a patient chart becomes a ranked, explained list of recruiting anxiety trials in the Triright tab. Full requirements are in [PRD.md](PRD.md).
 
 ```mermaid
 flowchart TD
-    A["Clinician opens patient chart in Epic"] --> B["Clicks the right tab"]
+    A["Clinician opens patient chart in Epic"] --> B["Clicks the Triright tab"]
     B --> C["SMART on FHIR launch<br/>OAuth 2.0, patient context"]
 
     subgraph P1["Part 1: EHR extraction agent"]
@@ -40,7 +40,7 @@ flowchart TD
     G --> H
     G --> K
 
-    subgraph UI["The right tab in Epic"]
+    subgraph UI["The Triright tab in Epic"]
         N["Ranked trial cards<br/>sort by best match or nearest,<br/>filter by radius"]
         O["Why matched: criterion by criterion<br/>with chart evidence"]
         Q["Confirm with patient checklist<br/>for unknown items"]

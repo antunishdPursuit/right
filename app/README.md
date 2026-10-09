@@ -1,6 +1,6 @@
-# right: trial match demo
+# Triright: trial match demo
 
-The clinician selects a synthetic patient in the "right · Trial Match" tab of the ClinicView EHR mockup and clicks "Run trial match". The app screens that patient against every recruiting anxiety trial with a recruiting site within 15 miles of Midtown Manhattan (live from ClinicalTrials.gov API v2), plus the team reference trial. Each trial gets a match score and a status. Expand a row to see the trial summary and the criterion-by-criterion reasoning.
+The clinician selects a synthetic patient in the "Triright · Trial Match" tab of the ClinicView EHR mockup and clicks "Run trial match". The app screens that patient against every recruiting anxiety trial with a recruiting site within 15 miles of Midtown Manhattan (live from ClinicalTrials.gov API v2), plus the team reference trial. Each trial gets a match score and a status. Expand a row to see the trial summary and the criterion-by-criterion reasoning.
 
 ## How it works
 
@@ -23,7 +23,7 @@ Results are cached in `.cache.json`, so a second run for the same patient is ins
 ## Files
 
 - `app.py`: server, patient parser, ClinicalTrials.gov fetch, Claude calls.
-- `static/index.html`: the team EHR mockup with the "right · Trial Match" tab.
+- `static/index.html`: the team EHR mockup with the "Triright · Trial Match" tab.
 - `static/screen.html`: earlier version (one trial against many patients), kept as a fallback.
 - `synthetic-patient-data.md`: 24 synthetic personas and the reference trial. The answer key in section 3 is not sent to the model.
 

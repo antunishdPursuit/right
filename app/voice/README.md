@@ -1,4 +1,4 @@
-# right: voice
+# Triright: voice
 
 Voice features for the trial-match tab. Claude writes a plain-language script about one trial in English and Spanish. The doctor approves it, then ElevenLabs:
 
@@ -9,7 +9,7 @@ Voice features for the trial-match tab. Claude writes a plain-language script ab
 
 Everything plays on the doctor's screen in the clinic. The script and agents are built from trial information only, never the patient record. During the Q&A and teach-back calls, the patient's own voice goes to ElevenLabs and the teach-back transcript goes to Claude, so use synthetic patients only.
 
-In the Epic screen (`app/`, http://localhost:8000): open **right · Trial Match**, run a match, expand a trial, and click **Explain to patient**. The panel (`app/static/voice-panel.js`) walks through the same steps.
+In the Epic screen (`app/`, http://localhost:8000): open **Triright · Trial Match**, run a match, expand a trial, and click **Explain to patient**. The panel (`app/static/voice-panel.js`) walks through the same steps.
 
 ## Set up (once)
 

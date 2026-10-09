@@ -355,7 +355,7 @@
     .note-list { width: 100%; max-height: 170px; border-right: 0; border-bottom: 1px solid var(--border); }
     .appbar .opt, .appbar .user { display: none; }
   }
-  /* ---------- right: trial match ---------- */
+  /* ---------- Triright: trial match ---------- */
   .mt-list { width: 250px; flex: none; overflow: auto; background: var(--storyboard); border-right: 1px solid var(--border); }
   .mt-list h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 10px 12px 6px; }
   .mt-pt { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--divider); padding: 7px 12px; color: var(--text); font: inherit; cursor: pointer; }
@@ -402,7 +402,7 @@
   <button id="navSchedule">Schedule</button>
   <button class="opt" title="Not built in this prototype">In Basket</button>
   <button id="navLookup">Patient Lookup</button>
-  <button id="navMatch"><b>right</b> · Trial Match</button>
+  <button id="navMatch"><b>Triright</b> · Trial Match</button>
   <span class="spacer"></span>
   <span class="user">Dr. R. Rivera, PsyD · Behavioral Health</span>
 </header>
@@ -455,7 +455,7 @@
   </div>
 </section>
 
-<!-- right: trial match (one tab: pick a patient, see every trial's match score, expand for reasons) -->
+<!-- Triright: trial match (one tab: pick a patient, see every trial's match score, expand for reasons) -->
 <section class="view" id="matchView" hidden>
   <aside class="mt-list" id="mtList" aria-label="Patients"></aside>
   <div class="mt-main" id="mtMain"></div>
@@ -692,7 +692,7 @@ function renderTabs() {
   const tabs = [
     { key: "schedule", label: "Dept Schedule" },
     { key: "lookup", label: "Patient Lookup" },
-    { key: "match", label: "right · Trial Match" },
+    { key: "match", label: "Triright · Trial Match" },
     ...state.open.map(m => ({ key: m, label: byMrn(m).name, closable: true })),
   ];
   $("wsTabs").innerHTML = tabs.map(t => `
@@ -740,7 +740,7 @@ $("navSchedule").addEventListener("click", () => show("schedule"));
 $("navLookup").addEventListener("click", () => { show("lookup"); $("lkName").focus(); });
 $("navMatch").addEventListener("click", () => show("match"));
 
-/* ---------- right: trial match ---------- */
+/* ---------- Triright: trial match ---------- */
 const MT = { patients: null, nTrials: 0, sel: "P-002", rows: {}, open: null, err: "", busy: null, showRuled: false };
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const STATUS = {

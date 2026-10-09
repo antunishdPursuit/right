@@ -1,4 +1,4 @@
-/* right voice panel: explain one matched trial to the patient, on this screen.
+/* Triright voice panel: explain one matched trial to the patient, on this screen.
    Opened from a trial's "Explain to patient" button. Talks to the voice service in ../voice (port 8001).
    Scripts and agents are built from trial details only, never the patient record. During steps 4 and 5 the patient's
    own voice goes to ElevenLabs, and the teach-back transcript goes to Claude for scoring. */

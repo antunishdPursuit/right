@@ -18,6 +18,14 @@ Triright is a trial-match tab inside a mock EHR. A clinician picks a synthetic p
 - **October 8 (event night):** EHR mockup (ClinicView), trial-match app over live ClinicalTrials.gov data and 24 synthetic patients, voice service with the Explain to patient panel, and a Vercel deployment of both.
 - **October 9 (polish):** renamed to Triright, redesigned the voice panel and its button, made a 66-second launch film, and added a practitioner README with the film embedded.
 
+## Results
+
+- **Tested end to end with real keys:** matching, the voice panel and approval, English and Spanish playback, dubbing, and both voice agents with a real microphone in Chrome. The panel also works at phone width.
+- **Match accuracy against the answer key** (24 synthetic patients, reference trial):
+  - All 12 screen fails were ruled out, and 11 of 12 eligible patients were kept.
+  - Six patients the key calls "Eligible" came back "Possible fit · confirm", because consent and visit attendance aren't in the chart. This is the "unknown stays unknown" rule working as intended.
+  - One miss: P-006 was ruled out for an unnamed OTC sleep aid that the key says to verify. Fixing it means changing the screening prompt and rebuilding the cached results, so it's left as a known issue.
+
 ## What went well
 
 - **One clear flow.** Match, read the reasoning, explain to the patient, all without leaving the chart.
@@ -30,13 +38,13 @@ Triright is a trial-match tab inside a mock EHR. A clinician picks a synthetic p
 
 - **The live site is out of date.** Nothing pushed since October 8 has been deployed, so the public link still shows "right", the old panel, and the old button. The README links to it.
 - **Parallel work collided.** The launch film was built in a separate session that edited shared files at the same time, and a 15-second demo was committed and then removed 11 minutes later.
-- **The October 9 voice changes weren't tested with a real microphone.** The Claude app's browser has no mic, so the agents were tested with synthetic audio.
-- **Loose ends in the app.** The "✓ Approved" button state resets on page reload, and the ElevenLabs agents keep their old "right:" names until `app/voice/agents.py` is rerun.
+- **Voice testing came late.** The Claude app's browser has no microphone, so the October 9 changes were first tested with synthetic audio. A real-microphone run in Chrome at closeout passed.
+- **Loose ends, fixed at closeout.** The "✓ Approved" button reset on page reload, and the ElevenLabs agents still had their old "right:" names.
 - **The checklist went stale.** Its pre-event planning items were never closed.
 
 ## Evidence limits
 
-- **Match accuracy is unmeasured.** The data file has an answer key, and the PRD describes a prescriber-labeled review, but neither was run.
+- **Accuracy covers one trial.** Only the reference trial has an answer key. The other 54 trials are unscored, and the PRD's prescriber-labeled review wasn't run.
 - **No practitioner validation is recorded.** Whether trial recruitment at the visit is a real gap is still open.
 - **Narrow coverage.** Anxiety trials only, within 15 miles of Midtown Manhattan, from an October 8 snapshot.
 - **Not recorded:** event outcome, judging feedback, how the live demo went, and spend.
@@ -51,6 +59,7 @@ Triright is a trial-match tab inside a mock EHR. A clinician picks a synthetic p
 
 - **Write product rules down before building.** Every prompt, label, and screen then follows them.
 - **Check the deployed site after every push.** Don't assume deploys are connected.
+- **Score against the answer key early.** From cached results it took seconds, and it surfaced a real miss.
 - **Give each parallel agent session its own files**, or have it work on a branch.
 - **Serverless needs full context per request.** The voice panel sends the trial and approved script with every call, so a fresh Vercel instance can answer.
 - **Videos in a GitHub README must be uploaded through github.com.** Release files and `<video>` tags don't play.

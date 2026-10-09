@@ -19,7 +19,7 @@ Built in `app/voice/` (see `app/voice/README.md`). The patient listens on the do
 - [x] **C. Teach-back check:** the agent asks the patient to explain the study back; Claude scores each key point for the doctor.
 - [x] **Name (decided 2026-10-09):** the product is now Triright (was "right"). UI copy and docs use the new name; code identifiers such as `window.RightVoice` and `RIGHT_VOICE_URL` are unchanged.
 - [x] **Voice panel UI (decided 2026-10-09):** EHR chrome-blue header and "Explain to patient" button, which sits in a toolbar row above an open trial's details and shows "✓ Approved" once a script is approved; finished steps fold to one line and only the next step's button is green; steps 4–5 use a call view with a mic level ring and chat bubbles. The Epic screen itself is unchanged.
-- [ ] Test A–C end to end with real keys, then connect them to the Triright tab in `app/`.
+- [x] Test A–C end to end with real keys, then connect them to the Triright tab in `app/`.
 - [ ] Make one finished dub before the demo and keep its project ID as a backup.
 - [ ] **Back burner, D:** voice pre-screening for the "confirm with patient" items.
 - [ ] **Lowest priority:** dictation with Scribe (doctor talks, note is drafted).
